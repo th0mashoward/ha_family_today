@@ -4,16 +4,24 @@
       "user": {
         "title": "Family Today",
         "description": "Choose the calendars to combine into one 'today' view.",
-        "data": { "calendars": "Calendars" }
+        "data": {
+          "calendars": "Calendars"
+        }
       },
       "people": {
         "title": "Who owns each calendar?",
         "description": "One line per calendar: `calendar.entity = Person`. Edit the names as you like. {error}",
-        "data": { "people": "Calendar owners" }
+        "data": {
+          "people": "Calendar owners"
+        }
       }
     },
-    "error": { "invalid_people": "Check the calendar owner lines." },
-    "abort": { "already_configured": "Family Today is already set up." }
+    "error": {
+      "invalid_people": "Check the calendar owner lines."
+    },
+    "abort": {
+      "already_configured": "Family Today is already set up."
+    }
   },
   "options": {
     "step": {
@@ -28,20 +36,27 @@
       },
       "calendars": {
         "title": "Calendars",
-        "data": { "calendars": "Calendars" }
+        "data": {
+          "calendars": "Calendars"
+        }
       },
       "people": {
         "title": "Who owns each calendar?",
         "description": "One line per calendar: `calendar.entity = Person`. {error}",
-        "data": { "people": "Calendar owners" }
+        "data": {
+          "people": "Calendar owners"
+        }
       },
       "school": {
         "title": "School terms",
-        "description": "Terms: one per line, `2026-11-02 to 2026-12-18 Autumn 2`. INSET days: dates separated by commas or new lines. {error}",
+        "description": "Pick a school calendar (e.g. an ICS feed of term dates) or enter terms manually; manual terms are the fallback. Manual terms: one per line, `2026-11-02 to 2026-12-18 Autumn 2`. INSET days: dates separated by commas or new lines. Calendar events whose title contains a break keyword (holiday, inset...) are non-school days; events containing a term keyword span a term. {error}",
         "data": {
-          "terms": "Term dates",
+          "terms": "Manual term dates (fallback)",
           "inset_days": "INSET / non-school days in term",
-          "school_weekdays": "School days of the week"
+          "school_weekdays": "School days of the week",
+          "school_calendar": "School calendar (optional)",
+          "school_term_keywords": "Term keywords (default: term)",
+          "school_break_keywords": "Break keywords (default: holiday, half term, inset, closed, break...)"
         }
       },
       "bins": {

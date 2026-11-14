@@ -9,6 +9,12 @@ from datetime import date, timedelta
 from typing import Any, Iterable, Mapping
 
 DEFAULT_SCHOOL_WEEKDAYS = frozenset({0, 1, 2, 3, 4})
+DEFAULT_TERM_KEYWORDS = ("term",)
+DEFAULT_BREAK_KEYWORDS = (
+    "holiday", "half term", "half-term", "inset", "closed",
+    "break", "bank holiday", "training day",
+)
+MAX_BREAK_DAYS = 120  # guard against runaway multi-month ranges
 
 
 def _to_date(value: Any) -> date:
@@ -31,6 +37,18 @@ class BinRule:
     colour: str | None = None
 
 
+@dataclass(frozen=True)
+class SchoolCalendar:
+    """School dates learned from a calendar (term spans and/or break days)."""
+
+    terms: tuple[Term, ...] = ()
+    break_days: frozenset[date] = frozenset()
+
+    @property
+    def has_data(self) -> bool:
+        return bool(self.terms or self.break_days)
+
+
 @dataclass
 class Schedule:
     terms: tuple[Term, ...] = ()
@@ -42,6 +60,8 @@ class Schedule:
     # When not None, collections come from here (date -> bin names) instead
     # of the weekday/anchor rules. Populated from a calendar entity.
     calendar_days: dict[date, list[str]] | None = None
+    # When not None, school terms/breaks come from here instead of `terms`.
+    school_calendar: SchoolCalendar | None = None
 
     # ---- construction -------------------------------------------------
     @classmethod
@@ -76,14 +96,26 @@ class Schedule:
 
     # ---- school -------------------------------------------------------
     def term_on(self, day: date) -> Term | None:
+        cal = self.school_calendar
+        if cal is not None:
+            if term := next((t for t in cal.terms if t.start <= day <= t.end), None):
+                return term
+            if cal.terms:
+                return None
+            # Holiday-only calendar: no term names, so use manual terms for the name.
         return next((t for t in self.terms if t.start <= day <= t.end), None)
 
     def is_school_day(self, day: date) -> bool:
-        return (
-            day.weekday() in self.school_weekdays
-            and day not in self.inset_days
-            and self.term_on(day) is not None
-        )
+        if day.weekday() not in self.school_weekdays or day in self.inset_days:
+            return False
+        cal = self.school_calendar
+        if cal is not None:
+            if day in cal.break_days:
+                return False
+            if cal.terms:
+                return self.term_on(day) is not None
+            return True  # holiday-only calendar: any non-break weekday is a school day
+        return self.term_on(day) is not None
 
     # ---- bins ---------------------------------------------------------
     @staticmethod
@@ -158,3 +190,28 @@ def build_calendar_days(
             if name not in bucket:
                 bucket.append(name)
     return days
+
+
+def build_school_calendar(
+    events: Iterable[tuple[date, date, str]],
+    term_keywords: Iterable[str] | None = None,
+    break_keywords: Iterable[str] | None = None,
+) -> SchoolCalendar:
+    """Classify (start, end_exclusive, summary) events as term spans or breaks.
+
+    Break keywords are checked first, so "Half term" is a break even though it
+    contains "term". Events matching neither are ignored.
+    """
+    term_kw = [k.lower() for k in (term_keywords or DEFAULT_TERM_KEYWORDS)]
+    break_kw = [k.lower() for k in (break_keywords or DEFAULT_BREAK_KEYWORDS)]
+    terms: list[Term] = []
+    breaks: set[date] = set()
+    for start, end, summary in events:
+        text = summary.lower()
+        if any(k in text for k in break_kw):
+            for offset in range(max(1, min((end - start).days, MAX_BREAK_DAYS))):
+                breaks.add(start + timedelta(days=offset))
+        elif any(k in text for k in term_kw):
+            terms.append(Term(summary.strip(), start, max(start, end - timedelta(days=1))))
+    terms.sort(key=lambda t: t.start)
+    return SchoolCalendar(tuple(terms), frozenset(breaks))

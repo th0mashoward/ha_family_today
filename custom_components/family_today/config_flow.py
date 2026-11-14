@@ -25,6 +25,9 @@ from .const import (
     CONF_BINS,
     CONF_CALENDARS,
     CONF_INSET_DAYS,
+    CONF_SCHOOL_BREAK_KEYWORDS,
+    CONF_SCHOOL_CALENDAR,
+    CONF_SCHOOL_TERM_KEYWORDS,
     CONF_SCHOOL_WEEKDAYS,
     CONF_TERMS,
     DOMAIN,
@@ -34,12 +37,14 @@ from .parsing import (
     format_aliases,
     format_bin_rules,
     format_dates,
+    format_keywords,
     format_moves,
     format_people,
     format_terms,
     parse_aliases,
     parse_bin_rules,
     parse_dates,
+    parse_keywords,
     parse_moves,
     parse_people,
     parse_terms,
@@ -209,6 +214,16 @@ class FamilyTodayOptionsFlow(OptionsFlow):
                 else:
                     self.opts[CONF_TERMS] = terms
                     self.opts[CONF_INSET_DAYS] = inset
+                    self.opts[CONF_SCHOOL_TERM_KEYWORDS] = parse_keywords(
+                        user_input.get(CONF_SCHOOL_TERM_KEYWORDS)
+                    )
+                    self.opts[CONF_SCHOOL_BREAK_KEYWORDS] = parse_keywords(
+                        user_input.get(CONF_SCHOOL_BREAK_KEYWORDS)
+                    )
+                    if school_cal := user_input.get(CONF_SCHOOL_CALENDAR):
+                        self.opts[CONF_SCHOOL_CALENDAR] = school_cal
+                    else:
+                        self.opts.pop(CONF_SCHOOL_CALENDAR, None)
                     self.opts[CONF_SCHOOL_WEEKDAYS] = sorted(
                         int(d) for d in user_input.get(CONF_SCHOOL_WEEKDAYS, [])
                     ) or [0, 1, 2, 3, 4]
@@ -217,6 +232,13 @@ class FamilyTodayOptionsFlow(OptionsFlow):
         suggested = {
             CONF_TERMS: format_terms(self.opts.get(CONF_TERMS, [])),
             CONF_INSET_DAYS: format_dates(self.opts.get(CONF_INSET_DAYS, [])),
+            CONF_SCHOOL_CALENDAR: self.opts.get(CONF_SCHOOL_CALENDAR),
+            CONF_SCHOOL_TERM_KEYWORDS: format_keywords(
+                self.opts.get(CONF_SCHOOL_TERM_KEYWORDS, [])
+            ),
+            CONF_SCHOOL_BREAK_KEYWORDS: format_keywords(
+                self.opts.get(CONF_SCHOOL_BREAK_KEYWORDS, [])
+            ),
             CONF_SCHOOL_WEEKDAYS: [
                 str(d) for d in self.opts.get(CONF_SCHOOL_WEEKDAYS, [0, 1, 2, 3, 4])
             ],
@@ -227,6 +249,11 @@ class FamilyTodayOptionsFlow(OptionsFlow):
                     vol.Optional(CONF_TERMS): _TEXT,
                     vol.Optional(CONF_INSET_DAYS): _TEXT,
                     vol.Optional(CONF_SCHOOL_WEEKDAYS): _WEEKDAYS,
+                    vol.Optional(CONF_SCHOOL_CALENDAR): EntitySelector(
+                        EntitySelectorConfig(domain="calendar")
+                    ),
+                    vol.Optional(CONF_SCHOOL_TERM_KEYWORDS): TextSelector(),
+                    vol.Optional(CONF_SCHOOL_BREAK_KEYWORDS): TextSelector(),
                 }
             ),
             suggested,

@@ -57,4 +57,9 @@ assert mv == [{"date": "2026-12-24", "moved_to": "2026-12-23"}, {"date": "2026-1
 assert p.parse_moves(p.format_moves(mv)) == mv
 raises(p.parse_moves, "2026-12-24")
 
+# keywords
+assert p.parse_keywords("Term, school ,TERM\nholiday,") == ["term", "school", "holiday"]
+assert p.parse_keywords("") == []
+assert p.parse_keywords(p.format_keywords(["a", "b"])) == ["a", "b"]
+
 print("all parsing tests passed")

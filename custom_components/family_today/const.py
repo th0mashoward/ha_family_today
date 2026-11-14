@@ -34,3 +34,13 @@ BIN_LOOKAHEAD_DAYS = 60
 # Frontend card, served by the integration itself (no manual resource entry).
 CARD_VERSION = "0.1.0"
 CARD_URL = "/family_today/family-today-card.js"
+
+# Calendar-backed school terms (e.g. a Remote Calendar / ICS feed of term dates).
+# school_calendar:       "calendar.school_terms"
+# school_term_keywords:  ["term"]                     events that span a term
+# school_break_keywords: ["holiday", "half term", "inset"]   non-school days
+# Either shape works: term-span events, or holiday/INSET events only.
+CONF_SCHOOL_CALENDAR = "school_calendar"
+CONF_SCHOOL_TERM_KEYWORDS = "school_term_keywords"
+CONF_SCHOOL_BREAK_KEYWORDS = "school_break_keywords"
+SCHOOL_LOOKAHEAD_DAYS = 60

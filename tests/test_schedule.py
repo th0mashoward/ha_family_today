@@ -63,4 +63,45 @@ assert s.next_names(date(2026, 11, 14)) == (date(2026, 11, 19), ["General waste"
 s.calendar_days = None                                # fallback to rules
 assert s.names_on(date(2026, 11, 12)) == ["Food waste", "General waste"]
 
+# ---- calendar-backed school dates
+D = date
+term_events = [
+    (D(2026, 11, 2), D(2026, 12, 19), "Autumn Term 2"),
+    (D(2026, 11, 6), D(2026, 11, 7), "INSET Day"),
+    (D(2026, 12, 7), D(2026, 12, 8), "Half term (staff)"),   # break wins over "term"
+    (D(2026, 11, 20), D(2026, 11, 21), "Cake sale"),          # unclassified, ignored
+]
+cal = mod.build_school_calendar(term_events)
+assert [t.name for t in cal.terms] == ["Autumn Term 2"]
+assert cal.terms[0].end == D(2026, 12, 18)                    # exclusive end -> inclusive
+assert D(2026, 11, 6) in cal.break_days and D(2026, 12, 7) in cal.break_days
+assert D(2026, 11, 20) not in cal.break_days
+
+sc = mod.Schedule(school_calendar=cal)
+assert sc.is_school_day(D(2026, 11, 9))
+assert not sc.is_school_day(D(2026, 11, 6))      # INSET from calendar
+assert not sc.is_school_day(D(2026, 12, 21))     # after term
+assert not sc.is_school_day(D(2026, 11, 14))     # Saturday
+assert sc.term_on(D(2026, 11, 9)).name == "Autumn Term 2"
+
+# holiday-only calendar: term implied
+hol = mod.build_school_calendar([(D(2026, 12, 19), D(2027, 1, 4), "Christmas Holidays")])
+sh = mod.Schedule(school_calendar=hol)
+assert sh.is_school_day(D(2026, 12, 16))
+assert not sh.is_school_day(D(2026, 12, 22))
+assert sh.is_school_day(D(2027, 1, 5))
+assert not sh.is_school_day(D(2026, 12, 19))     # Saturday
+
+# nothing classifiable -> has_data False so the coordinator falls back
+assert not mod.build_school_calendar([(D(2026, 11, 20), D(2026, 11, 21), "Cake sale")]).has_data
+
+# custom keywords
+custom = mod.build_school_calendar(
+    [(D(2026, 11, 2), D(2026, 12, 19), "Michaelmas"), (D(2026, 11, 9), D(2026, 11, 10), "Mufti day off")],
+    term_keywords=["michaelmas"], break_keywords=["day off"])
+assert custom.terms and D(2026, 11, 9) in custom.break_days
+
+# fallback: no school calendar -> manual terms (original schedule `s`)
+assert s.school_calendar is None and s.is_school_day(D(2026, 11, 9))
+
 print("all schedule tests passed")

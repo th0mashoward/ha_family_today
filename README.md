@@ -24,13 +24,21 @@ colors:            # optional
 Copy `custom_components/family_today` into your HA `config/custom_components/` and restart.
 
 ## Entities
-- `sensor.family_today_today`: event count; attributes `agenda`, `by_person`, `people`, `next_event`, `school_day`, `term`, `bins_today`, `bins_tomorrow`
+- `sensor.family_today_today`: event count; attributes `agenda`, `by_person`, `people`, `next_event`, `school_day`, `term`, `school_source`, `bin_source` (calendar or manual/rules), `bins_today`, `bins_tomorrow`
 - `sensor.family_today_next_bin_collection`
 - `binary_sensor.family_today_school_day`
 - `binary_sensor.family_today_bins_out_tonight`
 
 ## Configuration (Configure button)
-- **Terms:** one per line, `2026-11-02 to 2026-12-18 Autumn 2`; INSET days as dates.
+- **School calendar (optional):** pick a calendar entity, e.g. an ICS feed of term
+  dates added through a remote/ICS calendar integration. Two shapes work:
+  term-span events (title contains a *term keyword*, default `term`) and/or
+  holiday events (title contains a *break keyword*, default `holiday`, `half term`,
+  `inset`, `closed`, `break`...). Break keywords win, so "Half term" is a break.
+  If the calendar has no usable events, or hasn't loaded yet, the manual terms below are used.
+  Single-day "term starts" / "term ends" events aren't understood yet.
+- **Manual terms (fallback):** one per line, `2026-11-02 to 2026-12-18 Autumn 2`; INSET days as dates
+  (INSET days listed here apply on top of a school calendar too).
 - **Bins:** pick a Waste Collection Schedule calendar, rename titles with
   `Refuse = General waste`, or use manual rules `General waste | thu | 2 | 2026-11-12`
   and holiday moves `2026-12-24 -> 2026-12-23` (or `-> skip`).

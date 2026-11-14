@@ -151,3 +151,17 @@ def parse_moves(text: str | None) -> list[dict[str, str | None]]:
 
 def format_moves(moves: Iterable[Mapping[str, Any]]) -> str:
     return "\n".join(f"{m['date']} -> {m.get('moved_to') or 'skip'}" for m in moves)
+
+
+# ---- keywords: "term, school" ------------------------------------------
+def parse_keywords(text: str | None) -> list[str]:
+    seen: list[str] = []
+    for token in re.split(r"[,\n]+", text or ""):
+        word = token.strip().lower()
+        if word and word not in seen:
+            seen.append(word)
+    return seen
+
+
+def format_keywords(words: Iterable[str]) -> str:
+    return ", ".join(words)

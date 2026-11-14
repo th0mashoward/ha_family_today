@@ -48,6 +48,8 @@ class FamilyTodaySensor(FamilyTodayEntity, SensorEntity):
             "next_event": d.next_event.as_dict() if d.next_event else None,
             "school_day": d.school_day,
             "term": d.term_name,
+            "school_source": d.school_source,
+            "bin_source": d.bin_source,
             "bins_today": d.bins_today,
             "bins_tomorrow": d.bins_tomorrow,
         }
