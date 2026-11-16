@@ -53,6 +53,10 @@ Copy `custom_components/family_today` into your HA `config/custom_components/` a
   (writes `custom_components/family_today/www/family-today-card.js`, which is committed because HACS doesn't build)
 - Brand icon: `python3 assets/make_icon.py`
   (writes `custom_components/family_today/brand/icon.png` and `icon@2x.png`; HA 2026.3+ picks these up automatically)
+- Release: set `version` in `custom_components/family_today/manifest.json` and tag
+  the release with the same version prefixed with `v` (e.g. `v0.2.2`). HACS offers
+  the release tag while Home Assistant shows the manifest version, so keep them in
+  sync. The card cache-buster is read from the manifest automatically.
 
 Status: early (0.1.0). The pure logic and card have unit/smoke tests; it has not
 yet been run on a live Home Assistant instance.

@@ -8,7 +8,6 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
@@ -121,11 +120,11 @@ class FamilyTodayCoordinator(DataUpdateCoordinator[TodayData]):
                     blocking=True,
                     return_response=True,
                 )
-            except HomeAssistantError as err:
+            except Exception as err:  # noqa: BLE001 - keep the other calendars
                 _LOGGER.warning("Could not read %s: %s", entity_id, err)
                 continue
 
-            for raw in response.get(entity_id, {}).get("events", []):
+            for raw in (response or {}).get(entity_id, {}).get("events", []):
                 if (event := self._parse(raw, entity_id, person)) is not None:
                     events.append(event)
 
@@ -195,7 +194,7 @@ class FamilyTodayCoordinator(DataUpdateCoordinator[TodayData]):
                 blocking=True,
                 return_response=True,
             )
-        except HomeAssistantError as err:
+        except Exception as err:  # noqa: BLE001 - keep the last good data
             _LOGGER.warning("Could not read calendar %s: %s", entity_id, err)
             return None
 

@@ -32,7 +32,8 @@ CONF_BIN_ALIASES = "bin_aliases"
 BIN_LOOKAHEAD_DAYS = 60
 
 # Frontend card, served by the integration itself (no manual resource entry).
-CARD_VERSION = "0.2.1"
+# The cache-busting version comes from manifest.json, so it always matches the
+# integration release.
 CARD_URL = "/family_today/family-today-card.js"
 
 # Calendar-backed school terms (e.g. a Remote Calendar / ICS feed of term dates).
