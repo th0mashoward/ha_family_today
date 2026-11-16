@@ -49,7 +49,7 @@
       },
       "school": {
         "title": "School terms",
-        "description": "Pick a school calendar (e.g. an ICS feed of term dates) or enter terms manually; manual terms are the fallback. Manual terms: one per line, `2026-11-02 to 2026-12-18 Autumn 2`. INSET days: dates separated by commas or new lines. Calendar events whose title contains a break keyword (holiday, inset...) are non-school days; events containing a term keyword span a term. {error}",
+        "description": "Pick a school calendar (e.g. an ICS feed of school dates) or enter terms manually; manual terms are the fallback. Manual terms: one per line, `2026-11-02 to 2026-12-18 Autumn 2`. INSET days: dates separated by commas or new lines. The calendar is a list of days off: events containing a break keyword (holiday, half term, inset...) are non-school days, every other school weekday is a school day, and term-keyword events only name the term (single-day term starts/ends markers are ignored). {error}",
         "data": {
           "terms": "Manual term dates (fallback)",
           "inset_days": "INSET / non-school days in term",

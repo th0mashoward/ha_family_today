@@ -23,7 +23,9 @@ const ev = (person, summary, startMs, endMs, extra = {}) => ({
   start: iso(startMs), end: iso(endMs), all_day: false, location: null, ...extra,
 });
 const past = ev("Tom", "Early meeting", -3 * H, -2 * H);
-const current = ev("Sam", "Swimming", -0.5 * H, 0.5 * H, { location: "Leisure centre" });
+const current = ev("Sam", "Swimming", -0.5 * H, 0.5 * H, {
+  location: "Leisure centre", description: "Bring goggles",
+});
 const upcoming = ev("Tom", "Parents evening", 2 * H, 3 * H);
 const allDay = ev("Family", "Book day", 0, 0, { all_day: true });
 const agenda = [allDay, past, current, upcoming];
@@ -64,6 +66,34 @@ assert.match(t, /Book day/);
 assert.match(t, /Leisure centre/);
 assert.ok(el.shadowRoot.querySelector(".event.past"), "past event dimmed");
 assert.ok(el.shadowRoot.querySelector(".event.now"), "current event highlighted");
+assert.equal(el.shadowRoot.querySelectorAll(".person").length, 0, "no name chip on event rows");
+
+// --- clicking an event opens its details instead of the sensor more-info
+let moreInfo = 0;
+el.addEventListener("hass-more-info", () => moreInfo++);
+el.shadowRoot.querySelector(".event.now").click();
+await el.updateComplete;
+assert.ok(el.shadowRoot.querySelector(".overlay"), "event dialog opens");
+t = text(el);
+assert.match(t, /Bring goggles/);
+assert.match(t, /Leisure centre/);
+assert.match(t, /Sam/);
+assert.equal(moreInfo, 0, "event click does not open sensor more-info");
+el.shadowRoot.querySelector(".dialog .close").click();
+await el.updateComplete;
+assert.equal(el.shadowRoot.querySelector(".overlay"), null, "dialog closes");
+
+el.shadowRoot.querySelector(".event.now").click();
+await el.updateComplete;
+window.dispatchEvent(new window.KeyboardEvent("keydown", { key: "Escape" }));
+await el.updateComplete;
+assert.equal(el.shadowRoot.querySelector(".overlay"), null, "Escape closes the dialog");
+
+el.shadowRoot.querySelector(".next").click();
+await el.updateComplete;
+assert.match(el.shadowRoot.querySelector(".dialog-title").textContent, /Parents evening/);
+el.shadowRoot.querySelector(".dialog .close").click();
+await el.updateComplete;
 
 // --- hide_past
 el = await render({ entity: "sensor.family_today_today", hide_past: true }, mkHass(attrs()));

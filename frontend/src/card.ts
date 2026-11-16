@@ -17,6 +17,7 @@ import {
   defaults,
   formatDateLong,
   formatDateShort,
+  formatEventWhen,
   statusOf,
   timeRange,
 } from "./helpers";
@@ -27,15 +28,18 @@ export class FamilyTodayCard extends LitElement {
     hass: { attribute: false },
     _config: { state: true },
     _now: { state: true },
+    _selected: { state: true },
   };
   declare hass: Hass;
   declare _config: CardConfig;
   declare _now: number;
+  declare _selected: FamilyEvent | null;
   private _timer?: number;
 
   constructor() {
     super();
     this._now = Date.now();
+    this._selected = null;
   }
 
   // ---- HA card API ------------------------------------------------------
@@ -63,11 +67,32 @@ export class FamilyTodayCard extends LitElement {
     super.connectedCallback();
     this._now = Date.now();
     this._timer = window.setInterval(() => (this._now = Date.now()), 30_000);
+    window.addEventListener("keydown", this._onKeyDown);
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
     if (this._timer) window.clearInterval(this._timer);
+    window.removeEventListener("keydown", this._onKeyDown);
+  }
+
+  private _onKeyDown = (ev: KeyboardEvent): void => {
+    if (ev.key === "Escape" && this._selected) this._selected = null;
+  };
+
+  private _openEvent(ev: FamilyEvent): void {
+    this._selected = ev;
+  }
+
+  private _closeEvent(): void {
+    this._selected = null;
+  }
+
+  private _eventKey(ev: KeyboardEvent, event: FamilyEvent): void {
+    if (ev.key === "Enter" || ev.key === " ") {
+      ev.preventDefault();
+      this._openEvent(event);
+    }
   }
 
   // ---- data -------------------------------------------------------------
@@ -130,6 +155,7 @@ export class FamilyTodayCard extends LitElement {
         ${this._header(a)} ${this._banners(a)} ${this._next(a)}
         ${cfg.layout === "lanes" ? this._lanes(a) : this._list(a)}
       </ha-card>
+      ${this._selected ? this._eventDialog(this._selected) : nothing}
     `;
   }
 
@@ -195,7 +221,17 @@ export class FamilyTodayCard extends LitElement {
     if (!ev) return nothing;
     const ms = Date.parse(ev.start) - this._now;
     if (ms <= 0) return nothing;
-    return html`<div class="next">
+    return html`<div
+      class="next"
+      role="button"
+      tabindex="0"
+      aria-label=${`Details for ${ev.summary}`}
+      @click=${(e: Event) => {
+        e.stopPropagation();
+        this._openEvent(ev);
+      }}
+      @keydown=${(e: KeyboardEvent) => this._eventKey(e, ev)}
+    >
       <span class="dot" style=${styleMap({ background: this._color(ev.person) })}></span>
       <span class="next-text"><strong>Next:</strong> ${ev.summary}</span>
       <span class="next-when">${countdown(ms)}</span>
@@ -220,15 +256,23 @@ export class FamilyTodayCard extends LitElement {
       ${this._config.show_all_day && allDay.length
         ? html`<div class="allday">
             ${allDay.map(
-              (e) => html`<span
+              (ev) => html`<span
                 class="allday-chip"
-                style=${styleMap({ "--person-color": this._color(e.person) })}
-                >${e.summary}</span
+                style=${styleMap({ "--person-color": this._color(ev.person) })}
+                role="button"
+                tabindex="0"
+                aria-label=${`Details for ${ev.summary}`}
+                @click=${(e: Event) => {
+                  e.stopPropagation();
+                  this._openEvent(ev);
+                }}
+                @keydown=${(e: KeyboardEvent) => this._eventKey(e, ev)}
+                >${ev.summary}</span
               >`,
             )}
           </div>`
         : nothing}
-      <div class="events">${timed.map((e) => this._eventRow(e, true))}</div>
+      <div class="events">${timed.map((e) => this._eventRow(e))}</div>
     `;
   }
 
@@ -241,18 +285,26 @@ export class FamilyTodayCard extends LitElement {
         return html`<div class="lane" style=${styleMap({ "--person-color": this._color(p) })}>
           <div class="lane-head"><span class="dot"></span>${p}</div>
           ${events.length
-            ? events.map((e) => this._eventRow(e, false))
+            ? events.map((e) => this._eventRow(e))
             : html`<div class="lane-empty">Nothing on</div>`}
         </div>`;
       })}
     </div>`;
   }
 
-  private _eventRow(ev: FamilyEvent, showPerson: boolean): TemplateResult {
+  private _eventRow(ev: FamilyEvent): TemplateResult {
     const status = statusOf(ev, this._now);
     return html`<div
       class=${classMap({ event: true, past: status === "past", now: status === "now" })}
       style=${styleMap({ "--person-color": this._color(ev.person) })}
+      role="button"
+      tabindex="0"
+      aria-label=${`Details for ${ev.summary}`}
+      @click=${(e: Event) => {
+        e.stopPropagation();
+        this._openEvent(ev);
+      }}
+      @keydown=${(e: KeyboardEvent) => this._eventKey(e, ev)}
     >
       <div class="time">${timeRange(this.hass, ev)}</div>
       <div class="body">
@@ -261,7 +313,46 @@ export class FamilyTodayCard extends LitElement {
           ? html`<div class="meta"><ha-icon icon="mdi:map-marker-outline"></ha-icon>${ev.location}</div>`
           : nothing}
       </div>
-      ${showPerson ? html`<span class="person">${ev.person}</span>` : nothing}
+    </div>`;
+  }
+
+  private _eventDialog(ev: FamilyEvent): TemplateResult {
+    return html`<div
+      class="overlay"
+      @click=${(e: Event) => {
+        e.stopPropagation();
+        this._closeEvent();
+      }}
+    >
+      <div
+        class="dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label=${ev.summary}
+        @click=${(e: Event) => e.stopPropagation()}
+      >
+        <div class="dialog-head">
+          <div>
+            <div class="dialog-title">${ev.summary}</div>
+            <div class="dialog-sub">${formatEventWhen(this.hass, ev)}</div>
+          </div>
+          <button class="close" aria-label="Close" @click=${this._closeEvent}>
+            <ha-icon icon="mdi:close"></ha-icon>
+          </button>
+        </div>
+        <div class="dialog-body">
+          ${ev.location
+            ? html`<div class="detail">
+                <ha-icon icon="mdi:map-marker-outline"></ha-icon><span>${ev.location}</span>
+              </div>`
+            : nothing}
+          <div class="detail">
+            <span class="dot" style=${styleMap({ background: this._color(ev.person) })}></span>
+            <span>${ev.person}</span>
+          </div>
+          ${ev.description ? html`<div class="description">${ev.description}</div>` : nothing}
+        </div>
+      </div>
     </div>`;
   }
 
@@ -282,23 +373,26 @@ export class FamilyTodayCard extends LitElement {
     .banner ha-icon { --mdc-icon-size: 20px; flex: none; }
     .banner .label { font-weight: 500; }
     .banner .text { margin-left: auto; text-align: right; }
-    .next { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; color: var(--primary-text-color); }
+    .next { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; cursor: pointer;
+      border-radius: 4px; color: var(--primary-text-color); }
+    .next:hover { background: var(--secondary-background-color); }
     .next-when { margin-left: auto; color: var(--secondary-text-color); white-space: nowrap; }
     .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--person-color, var(--primary-color)); flex: none; }
     .allday { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
-    .allday-chip { padding: 3px 10px; border-radius: 6px; font-size: 0.9em;
+    .allday-chip { padding: 3px 10px; border-radius: 6px; font-size: 0.9em; cursor: pointer;
       border-left: 4px solid var(--person-color); background: var(--secondary-background-color); color: var(--primary-text-color); }
     .events { display: flex; flex-direction: column; gap: 2px; }
-    .event { display: flex; align-items: flex-start; gap: 10px; padding: 8px 8px 8px 10px;
+    .event { display: flex; align-items: flex-start; gap: 10px; padding: 8px 8px 8px 10px; cursor: pointer;
       border-left: 4px solid var(--person-color); border-radius: 4px; }
+    .event:hover { background: var(--secondary-background-color); }
     .event.past { opacity: 0.45; }
     .event.now { background: rgba(var(--rgb-primary-color, 3, 169, 244), 0.1); }
+    .event.now:hover { background: rgba(var(--rgb-primary-color, 3, 169, 244), 0.18); }
     .time { flex: none; min-width: 7.5em; color: var(--secondary-text-color); font-size: 0.9em; padding-top: 1px; }
     .body { flex: 1; min-width: 0; }
     .summary { color: var(--primary-text-color); overflow-wrap: anywhere; }
     .meta { display: flex; align-items: center; gap: 2px; color: var(--secondary-text-color); font-size: 0.85em; }
     .meta ha-icon { --mdc-icon-size: 14px; }
-    .person { flex: none; font-size: 0.8em; padding: 2px 8px; border-radius: 999px; color: #fff; background: var(--person-color); }
     .lanes { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
     .lane { min-width: 0; }
     .lane-head { display: flex; align-items: center; gap: 6px; font-weight: 500; margin-bottom: 6px; color: var(--primary-text-color); }
@@ -306,6 +400,24 @@ export class FamilyTodayCard extends LitElement {
     .lane .time { min-width: 0; }
     .lane-empty { color: var(--secondary-text-color); font-size: 0.9em; padding: 4px 0 4px 14px; }
     .empty { color: var(--secondary-text-color); padding: 12px 0; text-align: center; }
+    .overlay { position: fixed; inset: 0; z-index: 999; display: flex; align-items: center;
+      justify-content: center; padding: 16px; background: rgba(0, 0, 0, 0.45); }
+    .dialog { width: min(420px, 100%); max-height: min(80vh, 560px); overflow: auto; padding: 18px 18px 20px;
+      border-radius: 16px; color: var(--primary-text-color); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+      background: var(--card-background-color, var(--ha-card-background, #fff)); }
+    .dialog-head { display: flex; align-items: flex-start; gap: 12px; }
+    .dialog-head > div { flex: 1; min-width: 0; }
+    .dialog-title { font-size: 1.15em; font-weight: 500; overflow-wrap: anywhere; }
+    .dialog-sub { margin-top: 2px; color: var(--secondary-text-color); font-size: 0.9em; }
+    .close { flex: none; display: inline-flex; padding: 2px; border: 0; border-radius: 50%; cursor: pointer;
+      background: transparent; color: var(--secondary-text-color); }
+    .close:hover { background: var(--secondary-background-color); color: var(--primary-text-color); }
+    .close ha-icon { --mdc-icon-size: 22px; }
+    .dialog-body { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+    .detail { display: flex; align-items: center; gap: 8px; }
+    .detail ha-icon { --mdc-icon-size: 18px; color: var(--secondary-text-color); flex: none; }
+    .description { padding-top: 12px; line-height: 1.4; overflow-wrap: anywhere; white-space: pre-wrap;
+      border-top: 1px solid var(--divider-color, rgba(0, 0, 0, 0.12)); }
   `;
 }
 

@@ -1,6 +1,7 @@
 {
   "domain": "family_today",
   "name": "Family Today",
+  "categories": ["productivity_information.calendars_todos", "local_services"],
   "codeowners": [
     "@th0mashoward"
   ],
@@ -14,5 +15,5 @@
   "integration_type": "service",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/th0mashoward/family_today/issues",
-  "version": "0.2.0"
+  "version": "0.2.1"
 }

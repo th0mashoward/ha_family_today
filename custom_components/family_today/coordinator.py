@@ -40,6 +40,7 @@ class FamilyEvent:
     end: datetime
     all_day: bool
     location: str | None = None
+    description: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -50,6 +51,7 @@ class FamilyEvent:
             "end": self.end.isoformat(),
             "all_day": self.all_day,
             "location": self.location,
+            "description": self.description,
         }
 
 
@@ -149,12 +151,11 @@ class FamilyTodayCoordinator(DataUpdateCoordinator[TodayData]):
                 self.school_calendar_entity, day_start, SCHOOL_LOOKAHEAD_DAYS
             )
             if items is not None:
-                cal = build_school_calendar(
+                # The calendar lists days off: a successful fetch is trusted even
+                # when it has no events in range, so the default stays "school".
+                self._school_cal_cache = build_school_calendar(
                     items, self.school_term_keywords, self.school_break_keywords
                 )
-                # No usable events -> fall back to manual terms rather than
-                # claiming every weekday is a school day.
-                self._school_cal_cache = cal if cal.has_data else None
             self.schedule.school_calendar = self._school_cal_cache
 
         today = dt_util.now().date()
@@ -252,4 +253,5 @@ class FamilyTodayCoordinator(DataUpdateCoordinator[TodayData]):
             end=end,
             all_day=all_day,
             location=raw.get("location") or None,
+            description=raw.get("description") or None,
         )

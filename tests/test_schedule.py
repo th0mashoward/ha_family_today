@@ -63,12 +63,13 @@ assert s.next_names(date(2026, 11, 14)) == (date(2026, 11, 19), ["General waste"
 s.calendar_days = None                                # fallback to rules
 assert s.names_on(date(2026, 11, 12)) == ["Food waste", "General waste"]
 
-# ---- calendar-backed school dates
+# ---- calendar-backed school dates (the calendar is a list of days off)
 D = date
 term_events = [
-    (D(2026, 11, 2), D(2026, 12, 19), "Autumn Term 2"),
+    (D(2026, 11, 2), D(2026, 12, 19), "Autumn Term 2"),       # used for the term name
     (D(2026, 11, 6), D(2026, 11, 7), "INSET Day"),
     (D(2026, 12, 7), D(2026, 12, 8), "Half term (staff)"),   # break wins over "term"
+    (D(2026, 12, 19), D(2027, 1, 4), "Christmas Holidays"),
     (D(2026, 11, 20), D(2026, 11, 21), "Cake sale"),          # unclassified, ignored
 ]
 cal = mod.build_school_calendar(term_events)
@@ -78,11 +79,33 @@ assert D(2026, 11, 6) in cal.break_days and D(2026, 12, 7) in cal.break_days
 assert D(2026, 11, 20) not in cal.break_days
 
 sc = mod.Schedule(school_calendar=cal)
-assert sc.is_school_day(D(2026, 11, 9))
+assert sc.is_school_day(D(2026, 11, 9))          # ordinary weekday
 assert not sc.is_school_day(D(2026, 11, 6))      # INSET from calendar
-assert not sc.is_school_day(D(2026, 12, 21))     # after term
 assert not sc.is_school_day(D(2026, 11, 14))     # Saturday
+assert not sc.is_school_day(D(2026, 12, 22))     # calendar holiday
+assert sc.is_school_day(D(2027, 1, 5))           # back after the holiday
 assert sc.term_on(D(2026, 11, 9)).name == "Autumn Term 2"
+assert sc.term_on(D(2026, 12, 22)) is None       # outside the term span
+
+# Single-day "Term starts"/"Term ends" markers must not become one-day terms
+# (that used to make every other day "No school").
+markers = [
+    (D(2026, 9, 2), D(2026, 9, 3), "Term starts"),
+    (D(2026, 10, 26), D(2026, 10, 31), "Half term"),
+    (D(2026, 11, 2), D(2026, 11, 3), "Term starts"),
+    (D(2026, 12, 18), D(2026, 12, 19), "Term ends"),
+]
+marker_cal = mod.build_school_calendar(markers)
+assert not marker_cal.terms
+ms = mod.Schedule(school_calendar=marker_cal)
+assert ms.is_school_day(D(2026, 11, 16))         # ordinary Monday
+assert not ms.is_school_day(D(2026, 10, 27))     # half term
+assert not ms.is_school_day(D(2026, 11, 21))     # Saturday
+
+# Empty calendar still defaults to school (weekends stay off).
+empty = mod.Schedule(school_calendar=mod.build_school_calendar([]))
+assert empty.is_school_day(D(2026, 11, 16))
+assert not empty.is_school_day(D(2026, 11, 15))
 
 # holiday-only calendar: term implied
 hol = mod.build_school_calendar([(D(2026, 12, 19), D(2027, 1, 4), "Christmas Holidays")])
@@ -92,7 +115,7 @@ assert not sh.is_school_day(D(2026, 12, 22))
 assert sh.is_school_day(D(2027, 1, 5))
 assert not sh.is_school_day(D(2026, 12, 19))     # Saturday
 
-# nothing classifiable -> has_data False so the coordinator falls back
+# nothing classifiable -> nothing learned
 assert not mod.build_school_calendar([(D(2026, 11, 20), D(2026, 11, 21), "Cake sale")]).has_data
 
 # custom keywords
@@ -103,5 +126,6 @@ assert custom.terms and D(2026, 11, 9) in custom.break_days
 
 # fallback: no school calendar -> manual terms (original schedule `s`)
 assert s.school_calendar is None and s.is_school_day(D(2026, 11, 9))
+assert not s.is_school_day(D(2026, 12, 21))      # manual term boundary still applies
 
 print("all schedule tests passed")

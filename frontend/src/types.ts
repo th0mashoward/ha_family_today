@@ -6,6 +6,7 @@ export interface FamilyEvent {
   end: string;
   all_day: boolean;
   location: string | null;
+  description?: string | null;
 }
 
 /** Attributes exposed by sensor.family_today_today */

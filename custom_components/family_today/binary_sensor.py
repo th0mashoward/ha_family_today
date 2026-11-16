@@ -26,7 +26,7 @@ async def async_setup_entry(
 
 
 class SchoolDayBinarySensor(FamilyTodayEntity, BinarySensorEntity):
-    """On when today is a term-time school day (not weekend, holiday or INSET)."""
+    """On when today is a school day (not a weekend, calendar break or INSET)."""
 
     _attr_name = "School day"
     _attr_icon = "mdi:school"

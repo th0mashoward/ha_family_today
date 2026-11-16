@@ -10,7 +10,8 @@ rules), and a bundled Lovelace card.
 3. Download **Family Today**, then restart Home Assistant.
 4. Settings > Devices & services > **Add integration** > Family Today.
 5. Pick your calendars and name their owners. Use **Configure** for school terms and bins.
-6. Add the card (hard-reload the browser the first time):
+6. Add the card (hard-reload the browser the first time). Click an event to see
+   its details, including the description, time, location and person:
 
 ```yaml
 type: custom:family-today-card
@@ -30,13 +31,16 @@ Copy `custom_components/family_today` into your HA `config/custom_components/` a
 - `binary_sensor.family_today_bins_out_tonight`
 
 ## Configuration (Configure button)
-- **School calendar (optional):** pick a calendar entity, e.g. an ICS feed of term
-  dates added through a remote/ICS calendar integration. Two shapes work:
-  term-span events (title contains a *term keyword*, default `term`) and/or
-  holiday events (title contains a *break keyword*, default `holiday`, `half term`,
-  `inset`, `closed`, `break`...). Break keywords win, so "Half term" is a break.
-  If the calendar has no usable events, or hasn't loaded yet, the manual terms below are used.
-  Single-day "term starts" / "term ends" events aren't understood yet.
+- **School calendar (optional):** pick a calendar entity, e.g. an ICS feed of school
+  dates. It is treated as a list of **days off**: events whose title contains a
+  *break keyword* (default `holiday`, `half term`, `inset`, `closed`, `break`...)
+  make those days non-school days. Every other configured school weekday is a
+  school day; weekends and the manual INSET dates are always off. Term-span
+  events (title contains a *term keyword*, default `term`) are only used to name
+  the current term, and single-day "term starts" / "term ends" markers are
+  ignored. Gaps between terms are *not* assumed to be holidays: the feed must
+  mark holidays with a break keyword. If the calendar can't be read, the manual
+  terms below are the fallback.
 - **Manual terms (fallback):** one per line, `2026-11-02 to 2026-12-18 Autumn 2`; INSET days as dates
   (INSET days listed here apply on top of a school calendar too).
 - **Bins:** pick a Waste Collection Schedule calendar, rename titles with
@@ -47,6 +51,8 @@ Copy `custom_components/family_today` into your HA `config/custom_components/` a
 - Python logic tests: `python3 tests/test_schedule.py && python3 tests/test_parsing.py`
 - Card: `cd frontend && npm install && npm run build && npm test`
   (writes `custom_components/family_today/www/family-today-card.js`, which is committed because HACS doesn't build)
+- Brand icon: `python3 assets/make_icon.py`
+  (writes `custom_components/family_today/brand/icon.png` and `icon@2x.png`; HA 2026.3+ picks these up automatically)
 
 Status: early (0.1.0). The pure logic and card have unit/smoke tests; it has not
 yet been run on a live Home Assistant instance.

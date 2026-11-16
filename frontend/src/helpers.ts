@@ -45,6 +45,23 @@ export function timeRange(hass: Hass, ev: FamilyEvent): string {
   return `${formatTime(hass, ev.start)} – ${formatTime(hass, ev.end)}`;
 }
 
+export function formatEventWhen(hass: Hass, ev: FamilyEvent): string {
+  const start = new Date(ev.start);
+  if (!ev.all_day) {
+    return `${formatDateLong(hass, start.getTime())} · ${timeRange(hass, ev)}`;
+  }
+  const end = new Date(ev.end);
+  const lastDay = new Date(end.getFullYear(), end.getMonth(), end.getDate() - 1);
+  const sameDay =
+    start.getFullYear() === lastDay.getFullYear() &&
+    start.getMonth() === lastDay.getMonth() &&
+    start.getDate() === lastDay.getDate();
+  const startText = formatDateLong(hass, start.getTime());
+  return sameDay
+    ? `All day · ${startText}`
+    : `All day · ${startText} – ${formatDateLong(hass, lastDay.getTime())}`;
+}
+
 export function formatDateLong(hass: Hass, now: number): string {
   return new Date(now).toLocaleDateString(locale(hass), {
     weekday: "long",
