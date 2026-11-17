@@ -84,4 +84,9 @@ async def _reload_on_options(hass: HomeAssistant, entry: FamilyTodayConfigEntry)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: FamilyTodayConfigEntry) -> bool:
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unloaded:
+        coordinator = getattr(entry, "runtime_data", None)
+        if coordinator is not None:
+            coordinator.clear_issues()
+    return unloaded

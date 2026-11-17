@@ -1,0 +1,117 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Family Today",
+        "description": "Choose a name for this instance and the calendars to combine into one 'today' view. Add the integration again with a different name for another household or dashboard.",
+        "data": {
+          "name": "Name",
+          "calendars": "Calendars"
+        }
+      },
+      "people": {
+        "title": "Who owns each calendar?",
+        "description": "One line per calendar: `calendar.entity = Person`. Edit the names as you like. {error}",
+        "data": {
+          "people": "Calendar owners"
+        }
+      }
+    },
+    "error": {
+      "invalid_people": "Check the calendar owner lines."
+    },
+    "abort": {
+      "already_configured": "That name is already in use. Pick a different name."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Family Today",
+        "menu_options": {
+          "calendars": "Calendars and people",
+          "school": "School terms",
+          "bins": "Bin collections",
+          "done": "Save and finish"
+        }
+      },
+      "calendars": {
+        "title": "Calendars",
+        "data": {
+          "calendars": "Calendars"
+        }
+      },
+      "people": {
+        "title": "Who owns each calendar?",
+        "description": "One line per calendar: `calendar.entity = Person`. {error}",
+        "data": {
+          "people": "Calendar owners"
+        }
+      },
+      "school": {
+        "title": "School terms",
+        "menu_options": {
+          "school_default": "Shared school settings",
+          "school_child": "Per-child school calendar"
+        }
+      },
+      "school_default": {
+        "title": "Shared school settings",
+        "description": "Pick a school calendar (e.g. an ICS feed of school dates) or enter terms manually; manual terms are the fallback. Manual terms: one per line, `2026-11-02 to 2026-12-18 Autumn 2`. INSET days: dates separated by commas or new lines. The calendar is a list of days off: events containing a break keyword (holiday, half term, inset...) are non-school days, every other school weekday is a school day, and term-keyword events only name the term (single-day term starts/ends markers are ignored). {error}",
+        "data": {
+          "terms": "Manual term dates (fallback)",
+          "inset_days": "INSET / non-school days in term",
+          "school_weekdays": "School days of the week",
+          "school_calendar": "School calendar (optional)",
+          "school_term_keywords": "Term keywords (default: term)",
+          "school_break_keywords": "Break keywords (default: holiday, half term, inset, closed, break...)"
+        }
+      },
+      "school_child": {
+        "title": "Per-child school calendar",
+        "description": "Choose which child to configure. Their calendar overrides the shared school feed and keywords; weekdays, manual terms and INSET days stay shared.",
+        "data": {
+          "school_child": "Child"
+        }
+      },
+      "school_child_form": {
+        "title": "School calendar for {person}",
+        "description": "Pick this child's school calendar. Leave the calendar empty and save to remove the override. Leave the keywords blank to use the shared values.",
+        "data": {
+          "school_calendar": "School calendar",
+          "school_term_keywords": "Term keywords (optional)",
+          "school_break_keywords": "Break keywords (optional)"
+        }
+      },
+      "bins": {
+        "title": "Bin collections",
+        "description": "Pick a Waste Collection Schedule calendar, or use manual rules. Aliases: `Refuse = General waste`. Colours and icons: `General waste | grey | mdi:trash-can` (name, colour, icon; either can be blank, and names match the displayed name after aliases). Manual rules: `General waste | thu | 2 | 2026-11-12` (name, weekday, every N weeks, a known collection date). Moves: `2026-12-24 -> 2026-12-23` or `-> skip`. {error}",
+        "data": {
+          "bin_calendar": "Bin calendar (e.g. Waste Collection Schedule)",
+          "bin_aliases": "Rename calendar titles",
+          "bin_appearance": "Bin colours and icons",
+          "bins": "Manual bin rules (fallback)",
+          "bin_moves": "Holiday moves (manual rules only)"
+        }
+      }
+    },
+    "error": {
+      "invalid_people": "Check the calendar owner lines.",
+      "invalid_terms": "Check the term lines.",
+      "invalid_dates": "Check the INSET dates.",
+      "invalid_aliases": "Check the alias lines.",
+      "invalid_appearance": "Check the bin colour/icon lines.",
+      "invalid_bins": "Check the manual bin rule lines.",
+      "invalid_moves": "Check the holiday move lines."
+    },
+    "abort": {
+      "no_people": "Add at least one calendar owner before configuring per-child school settings."
+    }
+  },
+  "issues": {
+    "calendar_unavailable": {
+      "title": "Calendar unavailable: {entity_id}",
+      "description": "Family Today has not been able to read `{entity_id}` for several refreshes. Last error: {error}. The card keeps showing the last saved events for today where possible."
+    }
+  }
+}

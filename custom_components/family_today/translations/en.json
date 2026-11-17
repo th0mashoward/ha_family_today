@@ -75,8 +75,18 @@
       "invalid_terms": "Check the term lines.",
       "invalid_dates": "Check the INSET dates.",
       "invalid_aliases": "Check the alias lines.",
+      "invalid_appearance": "Check the bin colour/icon lines.",
       "invalid_bins": "Check the manual bin rule lines.",
       "invalid_moves": "Check the holiday move lines."
+    },
+    "abort": {
+      "no_people": "Add at least one calendar owner before configuring per-child school settings."
+    }
+  },
+  "issues": {
+    "calendar_unavailable": {
+      "title": "Calendar unavailable: {entity_id}",
+      "description": "Family Today has not been able to read `{entity_id}` for several refreshes. Last error: {error}. The card keeps showing the last saved events for today where possible."
     }
   }
 }

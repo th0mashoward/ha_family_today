@@ -3,6 +3,7 @@ import type { TemplateResult } from "lit";
 import { classMap } from "lit/directives/class-map.js";
 import { styleMap } from "lit/directives/style-map.js";
 import type {
+  CalendarHealth,
   CardConfig,
   FamilyEvent,
   FamilyTodayAttributes,
@@ -180,8 +181,12 @@ export class FamilyTodayCard extends LitElement {
 
   private _banners(a: FamilyTodayAttributes): TemplateResult | typeof nothing {
     const { show_bins, show_next_bin } = this._config;
-    if (!show_bins) return nothing;
     const rows: TemplateResult[] = [];
+    const notice = this._calendarNotice(a);
+    if (notice) rows.push(notice);
+    if (!show_bins) {
+      return rows.length ? html`<div class="banners">${rows}</div>` : nothing;
+    }
     if (a.bins_today?.length) {
       rows.push(this._banner("mdi:trash-can", "Bin day today", a.bins_today.join(", ")));
     }
@@ -206,6 +211,36 @@ export class FamilyTodayCard extends LitElement {
       }
     }
     return rows.length ? html`<div class="banners">${rows}</div>` : nothing;
+  }
+
+  /** Muted warning when a person calendar is stale or unavailable. */
+  private _calendarNotice(a: FamilyTodayAttributes): TemplateResult | null {
+    const statuses = Object.values(a.calendar_status ?? {}).filter(
+      (s) => s.role === "person",
+    );
+    const failed = statuses.filter((s) => !s.ok);
+    if (!failed.length) return null;
+    const names = failed.map((s) => this._calendarName(s));
+    const list =
+      names.length > 1
+        ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`
+        : names[0];
+    const hasFreshData = failed.some((s) => !s.using_cache);
+    return this._banner(
+      "mdi:calendar-alert",
+      hasFreshData ? "Calendar unavailable" : "Showing saved events",
+      hasFreshData
+        ? `Couldn't refresh ${list}`
+        : `Today's events from ${list} are from an earlier refresh`,
+      true,
+    );
+  }
+
+  private _calendarName(status: CalendarHealth): string {
+    const friendly = this.hass.states?.[status.entity_id]?.attributes?.friendly_name;
+    return typeof friendly === "string" && friendly
+      ? friendly
+      : status.person || status.entity_id;
   }
 
   private _banner(icon: string, label: string, text: string, muted = false): TemplateResult {

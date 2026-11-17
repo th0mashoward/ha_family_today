@@ -3,17 +3,28 @@ from datetime import timedelta
 
 DOMAIN = "family_today"
 
+# Config entry name (needed so several Family Today instances can coexist).
+CONF_NAME = "name"
+DEFAULT_NAME = "Family Today"
+
 # Config entry option: {calendar_entity_id: person_name}
 CONF_CALENDARS = "calendars"
 
 UPDATE_INTERVAL = timedelta(minutes=5)
+
+# A calendar service call that hangs would block the whole refresh, so cap it.
+CALENDAR_TIMEOUT = 20  # seconds
+
+# Attributes are stored in the recorder and capped at ~16 KB, so keep long
+# event descriptions from bloating every state update.
+MAX_EVENT_DESCRIPTION = 1000
 
 # Schedule options (all stored as plain JSON-friendly values)
 # terms:          [{"name": "Autumn 2", "start": "2026-11-02", "end": "2026-12-18"}]
 # inset_days:     ["2026-11-06"]            non-school days inside a term
 # school_weekdays:[0, 1, 2, 3, 4]           Monday=0
 # bins:           [{"name": "Recycling", "weekday": 3, "every_n_weeks": 2,
-#                   "anchor": "2026-11-19", "colour": "blue"}]
+#                   "anchor": "2026-11-19"}]   (a "colour" key is also honoured)
 # bin_moves:      [{"date": "2026-12-24", "moved_to": "2026-12-23"}]
 #                 moved_to null/omitted = that day's whole round is skipped
 CONF_TERMS = "terms"

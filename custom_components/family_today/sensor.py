@@ -48,10 +48,20 @@ class FamilyTodaySensor(FamilyTodayEntity, SensorEntity):
             "next_event": d.next_event.as_dict() if d.next_event else None,
             "school_day": d.school_day,
             "term": d.term_name,
+            "break_reason": d.school.reason if d.school else None,
+            "school": d.school.as_dict() if d.school else None,
+            "school_by_person": {
+                person: status.as_dict() for person, status in d.school_by_person.items()
+            },
+            "school_overrides": d.school_overrides,
             "school_source": d.school_source,
             "bin_source": d.bin_source,
             "bins_today": d.bins_today,
             "bins_tomorrow": d.bins_tomorrow,
+            "bin_meta": d.bin_meta,
+            "calendar_status": d.calendar_status,
+            "calendars_ok": d.calendars_ok,
+            "calendars_total": d.calendars_total,
         }
 
 
@@ -72,4 +82,8 @@ class NextBinSensor(FamilyTodayEntity, SensorEntity):
         days_until = (
             (d.next_bin_date - dt_util.now().date()).days if d.next_bin_date else None
         )
-        return {"bins": d.next_bin_names, "days_until": days_until}
+        return {
+            "bins": d.next_bin_names,
+            "days_until": days_until,
+            "bin_meta": d.bin_meta,
+        }
