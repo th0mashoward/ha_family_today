@@ -57,6 +57,24 @@ assert mv == [{"date": "2026-12-24", "moved_to": "2026-12-23"}, {"date": "2026-1
 assert p.parse_moves(p.format_moves(mv)) == mv
 raises(p.parse_moves, "2026-12-24")
 
+# bin appearance
+ap = p.parse_bin_appearance(
+    "General waste | grey | mdi:trash-can\nRecycling | blue\nGarden | | mdi:leaf\nX | #fff | mdi:delete"
+)
+assert ap == {
+    "General waste": {"colour": "grey", "icon": "mdi:trash-can"},
+    "Recycling": {"colour": "blue"},
+    "Garden": {"icon": "mdi:leaf"},
+    "X": {"colour": "#fff", "icon": "mdi:delete"},
+}
+assert p.parse_bin_appearance(p.format_bin_appearance(ap)) == ap
+assert p.parse_bin_appearance("# comment\n") == {}
+raises(p.parse_bin_appearance, "General waste")
+raises(p.parse_bin_appearance, "General waste | | ")
+raises(p.parse_bin_appearance, "General waste | not a colour | mdi:trash-can")
+raises(p.parse_bin_appearance, "General waste | grey | trash-can")
+raises(p.parse_bin_appearance, "a | b | c | d")
+
 # keywords
 assert p.parse_keywords("Term, school ,TERM\nholiday,") == ["term", "school", "holiday"]
 assert p.parse_keywords("") == []

@@ -48,6 +48,7 @@ from .parsing import (
     format_people,
     format_terms,
     parse_aliases,
+    parse_bin_appearance,
     parse_bin_rules,
     parse_dates,
     parse_keywords,
@@ -292,6 +293,7 @@ class FamilyTodayOptionsFlow(OptionsFlow):
             parsed: dict[str, Any] = {}
             for field, parser, code in (
                 (CONF_BIN_ALIASES, parse_aliases, "invalid_aliases"),
+                (CONF_BIN_APPEARANCE, parse_bin_appearance, "invalid_appearance"),
                 (CONF_BINS, parse_bin_rules, "invalid_bins"),
                 (CONF_BIN_MOVES, parse_moves, "invalid_moves"),
             ):
@@ -312,6 +314,9 @@ class FamilyTodayOptionsFlow(OptionsFlow):
         suggested = {
             CONF_BIN_CALENDAR: self.opts.get(CONF_BIN_CALENDAR),
             CONF_BIN_ALIASES: format_aliases(self.opts.get(CONF_BIN_ALIASES, {})),
+            CONF_BIN_APPEARANCE: format_bin_appearance(
+                self.opts.get(CONF_BIN_APPEARANCE, {})
+            ),
             CONF_BINS: format_bin_rules(self.opts.get(CONF_BINS, [])),
             CONF_BIN_MOVES: format_moves(self.opts.get(CONF_BIN_MOVES, [])),
         }
@@ -322,6 +327,7 @@ class FamilyTodayOptionsFlow(OptionsFlow):
                         EntitySelectorConfig(domain="calendar")
                     ),
                     vol.Optional(CONF_BIN_ALIASES): _TEXT,
+                    vol.Optional(CONF_BIN_APPEARANCE): _TEXT,
                     vol.Optional(CONF_BINS): _TEXT,
                     vol.Optional(CONF_BIN_MOVES): _TEXT,
                 }

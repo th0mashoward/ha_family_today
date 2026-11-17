@@ -3,6 +3,7 @@ import type { TemplateResult } from "lit";
 import { classMap } from "lit/directives/class-map.js";
 import { styleMap } from "lit/directives/style-map.js";
 import type {
+  BinAppearance,
   CalendarHealth,
   CardConfig,
   FamilyEvent,
@@ -13,6 +14,8 @@ import type {
 import {
   DEFAULT_BIN_ENTITY,
   DEFAULT_ENTITY,
+  FALLBACK_BIN_ICON,
+  binColour,
   colorFor,
   countdown,
   defaults,
@@ -187,16 +190,27 @@ export class FamilyTodayCard extends LitElement {
     if (!show_bins) {
       return rows.length ? html`<div class="banners">${rows}</div>` : nothing;
     }
+    const meta = a.bin_meta ?? {};
     if (a.bins_today?.length) {
-      rows.push(this._banner("mdi:trash-can", "Bin day today", a.bins_today.join(", ")));
+      rows.push(
+        this._banner("mdi:trash-can", "Bin day today", this._binChips(a.bins_today, meta)),
+      );
     }
     if (a.bins_tomorrow?.length) {
-      rows.push(this._banner("mdi:trash-can-outline", "Bins out tonight", a.bins_tomorrow.join(", ")));
+      rows.push(
+        this._banner(
+          "mdi:trash-can-outline",
+          "Bins out tonight",
+          this._binChips(a.bins_tomorrow, meta),
+        ),
+      );
     }
     if (!rows.length && show_next_bin) {
       const next = this.hass.states[this._config.bin_entity ?? DEFAULT_BIN_ENTITY];
       if (next && /^\d{4}-\d{2}-\d{2}$/.test(next.state)) {
-        const bins = (next.attributes.bins as string[] | undefined)?.join(", ") ?? "";
+        const bins = (next.attributes.bins as string[] | undefined) ?? [];
+        const nextMeta =
+          (next.attributes.bin_meta as Record<string, BinAppearance> | undefined) ?? meta;
         const days = next.attributes.days_until as number | null | undefined;
         const when =
           days === 1 ? "tomorrow" : days != null ? `in ${days} days` : "";
@@ -204,7 +218,9 @@ export class FamilyTodayCard extends LitElement {
           this._banner(
             "mdi:calendar-clock",
             `Next bins · ${formatDateShort(this.hass, next.state)}`,
-            [bins, when && `(${when})`].filter(Boolean).join(" "),
+            html`${bins.length ? this._binChips(bins, nextMeta) : nothing}${when
+              ? html`<span class="when">(${when})</span>`
+              : nothing}`,
             true,
           ),
         );
@@ -243,7 +259,27 @@ export class FamilyTodayCard extends LitElement {
       : status.person || status.entity_id;
   }
 
-  private _banner(icon: string, label: string, text: string, muted = false): TemplateResult {
+  private _binChips(
+    names: string[],
+    meta?: Record<string, BinAppearance>,
+  ): TemplateResult {
+    return html`${names.map((name) => {
+      const appearance = meta?.[name] ?? {};
+      const colour = binColour(appearance.colour);
+      return html`<span
+        class="bin-chip"
+        style=${styleMap(colour ? { "--bin-color": colour } : {})}
+        ><ha-icon icon=${appearance.icon || FALLBACK_BIN_ICON}></ha-icon>${name}</span
+      >`;
+    })}`;
+  }
+
+  private _banner(
+    icon: string,
+    label: string,
+    text: TemplateResult | string,
+    muted = false,
+  ): TemplateResult {
     return html`<div class=${classMap({ banner: true, muted })}>
       <ha-icon icon=${icon}></ha-icon>
       <span class="label">${label}</span>
@@ -402,12 +438,18 @@ export class FamilyTodayCard extends LitElement {
     .chip ha-icon { --mdc-icon-size: 16px; }
     .chip.school { background: rgba(var(--rgb-primary-color, 3, 169, 244), 0.15); color: var(--primary-color); }
     .banners { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
-    .banner { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px;
+    .banner { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px;
       background: rgba(var(--rgb-primary-color, 3, 169, 244), 0.12); color: var(--primary-text-color); }
     .banner.muted { background: var(--secondary-background-color); color: var(--secondary-text-color); }
     .banner ha-icon { --mdc-icon-size: 20px; flex: none; }
     .banner .label { font-weight: 500; }
-    .banner .text { margin-left: auto; text-align: right; }
+    .banner .text { margin-left: auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center;
+      justify-content: flex-end; gap: 4px 6px; text-align: right; }
+    .banner .when { color: var(--secondary-text-color); font-size: 0.9em; white-space: nowrap; }
+    .bin-chip { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px 1px 5px; white-space: nowrap;
+      border: 1px solid var(--divider-color, rgba(0, 0, 0, 0.12)); border-radius: 999px;
+      background: var(--secondary-background-color); color: var(--primary-text-color); font-size: 0.9em; }
+    .bin-chip ha-icon { --mdc-icon-size: 16px; color: var(--bin-color, var(--secondary-text-color)); }
     .next { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; cursor: pointer;
       border-radius: 4px; color: var(--primary-text-color); }
     .next:hover { background: var(--secondary-background-color); }

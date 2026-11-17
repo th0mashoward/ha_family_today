@@ -42,6 +42,11 @@ CONF_BIN_CALENDAR = "bin_calendar"
 CONF_BIN_ALIASES = "bin_aliases"
 BIN_LOOKAHEAD_DAYS = 60
 
+# Bin colours/icons, matched on the displayed name (so aliases apply too):
+# bin_appearance: {"General waste": {"colour": "grey", "icon": "mdi:trash-can"}}
+# Either field may be omitted; a missing icon is guessed from the name.
+CONF_BIN_APPEARANCE = "bin_appearance"
+
 # Frontend card, served by the integration itself (no manual resource entry).
 # The cache-busting version comes from manifest.json, so it always matches the
 # integration release.

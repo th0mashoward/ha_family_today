@@ -15,6 +15,31 @@ export function colorFor(person: string, colors?: Record<string, string>): strin
   return PALETTE[h % PALETTE.length];
 }
 
+// Mid-tone values that stay legible on both light and dark themes.
+const BIN_COLOURS: Record<string, string> = {
+  grey: "#9ca3af",
+  gray: "#9ca3af",
+  black: "#6b7280",
+  white: "#e5e7eb",
+  blue: "#3b82f6",
+  green: "#22c55e",
+  brown: "#a16207",
+  red: "#ef4444",
+  yellow: "#eab308",
+  orange: "#f97316",
+  purple: "#a855f7",
+  pink: "#ec4899",
+};
+
+export const FALLBACK_BIN_ICON = "mdi:delete";
+
+/** Friendly colour names map to theme-safe hex; anything else is CSS as-is. */
+export function binColour(colour?: string): string | undefined {
+  const value = colour?.trim();
+  if (!value) return undefined;
+  return BIN_COLOURS[value.toLowerCase()] ?? value;
+}
+
 export type EventStatus = "all-day" | "past" | "now" | "upcoming";
 
 export function statusOf(ev: FamilyEvent, now: number): EventStatus {

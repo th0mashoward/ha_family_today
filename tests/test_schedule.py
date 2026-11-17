@@ -128,4 +128,43 @@ assert custom.terms and D(2026, 11, 9) in custom.break_days
 assert s.school_calendar is None and s.is_school_day(D(2026, 11, 9))
 assert not s.is_school_day(D(2026, 12, 21))      # manual term boundary still applies
 
+# ---- bin colours/icons
+assert mod.guess_bin_icon("Recycling") == "mdi:recycle"
+assert mod.guess_bin_icon("Garden waste") == "mdi:leaf"
+assert mod.guess_bin_icon("Food waste") == "mdi:food-apple-outline"
+assert mod.guess_bin_icon("General waste") == "mdi:trash-can"
+assert mod.guess_bin_icon("Glass bottles") == "mdi:bottle-wine-outline"
+assert mod.guess_bin_icon("Mystery") == "mdi:delete"
+
+styled = mod.Schedule.from_options({
+    "bins": [
+        {"name": "General waste", "weekday": 3, "every_n_weeks": 1,
+         "anchor": "2026-11-12", "colour": "brown"},
+        {"name": "Recycling", "weekday": 3, "every_n_weeks": 2, "anchor": "2026-11-19"},
+    ],
+    "bin_appearance": {
+        "general waste": {"colour": "grey", "icon": "mdi:trash-can"},  # case-insensitive
+        "Recycling": {"colour": "#2563eb"},                            # icon guessed
+        "Unknown bin": {"icon": "mdi:help"},
+    },
+})
+meta = styled.bin_meta(["General waste", "Recycling", "Unknown bin", "Glass"])
+assert meta["General waste"] == {"colour": "grey", "icon": "mdi:trash-can"}  # config wins over rule
+assert meta["Recycling"] == {"colour": "#2563eb", "icon": "mdi:recycle"}
+assert meta["Unknown bin"] == {"icon": "mdi:help"}
+assert meta["Glass"] == {"icon": "mdi:bottle-wine-outline"}
+
+# a manual rule's colour is used when no appearance is configured
+rules_only = mod.Schedule.from_options({"bins": [
+    {"name": "General waste", "weekday": 3, "every_n_weeks": 1,
+     "anchor": "2026-11-12", "colour": "brown"},
+]})
+assert rules_only.bin_meta(["General waste"]) == {
+    "General waste": {"colour": "brown", "icon": "mdi:trash-can"},
+}
+
+# hand-edited options may give a bare colour string
+legacy = mod.Schedule.from_options({"bin_appearance": {"Recycling": "blue"}})
+assert legacy.bin_meta(["Recycling"])["Recycling"]["colour"] == "blue"
+
 print("all schedule tests passed")

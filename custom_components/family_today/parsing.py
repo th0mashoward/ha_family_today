@@ -137,6 +137,47 @@ def format_bin_rules(rules: Iterable[Mapping[str, Any]]) -> str:
     )
 
 
+# ---- bin appearance: "General waste | grey | mdi:trash-can" ------------
+_COLOUR_RE = re.compile(
+    r"^(#[0-9a-fA-F]{3,8}|(?:rgb|hsl)a?\([^)]*\)|[a-zA-Z][a-zA-Z0-9-]*)$"
+)
+_ICON_RE = re.compile(r"^[a-z0-9]+:[a-z0-9-]+$")
+
+
+def parse_bin_appearance(text: str | None) -> dict[str, dict[str, str]]:
+    """Parse `Name | colour | icon` lines; colour and icon are both optional.
+
+    The name is the *displayed* bin name, so it matches after aliases.
+    """
+    out: dict[str, dict[str, str]] = {}
+    for n, line in _lines(text):
+        parts = [p.strip() for p in line.split("|")]
+        if len(parts) > 3:
+            raise ParseError(f"line {n}: expected 'Name | colour | mdi:icon'")
+        name = parts[0]
+        colour = parts[1] if len(parts) > 1 else ""
+        icon = parts[2] if len(parts) > 2 else ""
+        if not name:
+            raise ParseError(f"line {n}: name is empty")
+        if not colour and not icon:
+            raise ParseError(f"line {n}: give a colour, an icon, or both")
+        if colour and not _COLOUR_RE.match(colour):
+            raise ParseError(
+                f"line {n}: '{colour}' is not a colour (name, #hex, rgb() or hsl())"
+            )
+        if icon and not _ICON_RE.match(icon):
+            raise ParseError(f"line {n}: '{icon}' is not an icon like mdi:trash-can")
+        out[name] = {k: v for k, v in (("colour", colour), ("icon", icon)) if v}
+    return out
+
+
+def format_bin_appearance(appearance: Mapping[str, Mapping[str, str]]) -> str:
+    return "\n".join(
+        f"{name} | {cfg.get('colour', '')} | {cfg.get('icon', '')}"
+        for name, cfg in appearance.items()
+    )
+
+
 # ---- bin moves: "2026-12-24 -> 2026-12-23" or "2026-12-24 -> skip" ----
 def parse_moves(text: str | None) -> list[dict[str, str | None]]:
     out = []
