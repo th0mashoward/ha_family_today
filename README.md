@@ -1,10 +1,33 @@
 # Family Today for Home Assistant
 
+[![Validate](https://github.com/th0mashoward/ha_family_today/actions/workflows/validate.yml/badge.svg?branch=master)](https://github.com/th0mashoward/ha_family_today/actions/workflows/validate.yml)
+[![GitHub release](https://img.shields.io/github/v/release/th0mashoward/ha_family_today?sort=semver)](https://github.com/th0mashoward/ha_family_today/releases)
+[![License](https://img.shields.io/github/license/th0mashoward/ha_family_today)](LICENSE)
+[![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=th0mashoward&repository=ha_family_today&category=integration)
+
 One merged "today" view across your calendars: a per-person agenda, a school
 day flag, bin collections (from a [Waste Collection Schedule] calendar or manual
 rules), and bundled Lovelace cards for the day and for school terms.
 
-## Install with HACS (custom repository)
+<!-- Screenshots: save PNGs as assets/screenshots/day-card.png and
+     assets/screenshots/school-card.png, then delete the surrounding comment.
+     Absolute URLs are used so the images also render on the HACS store page.
+
+## Screenshots
+
+| Day card | School card |
+| :---: | :---: |
+| ![Day card](https://raw.githubusercontent.com/th0mashoward/ha_family_today/master/assets/screenshots/day-card.png) | ![School card](https://raw.githubusercontent.com/th0mashoward/ha_family_today/master/assets/screenshots/school-card.png) |
+-->
+
+## Install
+
+The button above opens this repository inside HACS. It only works once the
+repository has been added, so for a first install:
+
+### HACS (custom repository)
 1. HACS > ⋮ > **Custom repositories**.
 2. Add `https://github.com/th0mashoward/ha_family_today`, category **Integration**.
 3. Download **Family Today**, then restart Home Assistant.
@@ -120,7 +143,7 @@ school days done), `term_school_days`, `term_school_days_done` and
   the release tag while Home Assistant shows the manifest version, so keep them in
   sync. The card cache-buster is read from the manifest automatically.
 
-Status: early (0.1.0). The pure logic and card have unit/smoke tests; it has not
-yet been run on a live Home Assistant instance.
+Status: early (0.1.1). The pure logic and card have unit/smoke tests, and it is
+running on a live Home Assistant instance.
 
 [Waste Collection Schedule]: https://github.com/mampfes/hacs_waste_collection_schedule
