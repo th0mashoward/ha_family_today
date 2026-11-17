@@ -4,6 +4,7 @@ No Home Assistant imports here, so it can be unit tested on its own.
 """
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import dataclass, field, replace
 from datetime import date, timedelta
 from typing import Any, Iterable, Mapping
@@ -14,8 +15,15 @@ DEFAULT_BREAK_KEYWORDS = (
     "holiday", "half term", "half-term", "inset", "closed",
     "break", "bank holiday", "training day",
 )
+# Feeds such as SchoolHolidays.org.uk name long breaks just "Dorset - Easter",
+# "Dorset - Summer" or "Dorset - Christmas". Only treat these as breaks for
+# multi-day events, so a single "Summer Fair" is not a day off, and never when
+# the title also names a term ("Summer Term").
+SEASONAL_BREAK_WORDS = ("easter", "christmas", "summer", "autumn", "spring", "whitsun")
 MAX_BREAK_DAYS = 120  # guard against runaway multi-month ranges
-
+# Half terms and longer split a term; one-day bank holidays and INSET days do
+# not. Used to infer term spans from holiday-only school feeds.
+MIN_TERM_BREAK_DAYS = 5
 
 DEFAULT_BIN_ICON = "mdi:delete"
 # First keyword match wins, so specific bins come before the generic ones.
@@ -553,6 +561,70 @@ def build_calendar_days(
     return days
 
 
+def _infer_terms(break_days: Iterable[date]) -> tuple[Term, ...]:
+    """Derive term spans from the gaps between long holidays.
+
+    Many school feeds (for example SchoolHolidays.org.uk calendars) only list
+    holidays, with no "Autumn Term" events, so the term is simply the run of
+    school days between one long break and the next. Short breaks stay inside
+    the term and are already handled by `is_school_day`.
+    """
+    runs: list[tuple[date, date]] = []
+    start = prev = None
+    for day in sorted(break_days):
+        if prev is not None and day == prev + timedelta(days=1):
+            prev = day
+            continue
+        if start is not None and prev is not None:
+            runs.append((start, prev))
+        start = prev = day
+    if start is not None and prev is not None:
+        runs.append((start, prev))
+
+    # A one-day event inside a holiday must not split the run, so measure the
+    # contiguous run rather than each event's own span.
+    long_runs = [
+        (first, last)
+        for first, last in runs
+        if (last - first).days + 1 >= MIN_TERM_BREAK_DAYS
+    ]
+
+    terms: list[Term] = []
+    for (_, break_end), (next_start, _) in zip(long_runs, long_runs[1:]):
+        term_start = break_end + timedelta(days=1)
+        while term_start.weekday() not in DEFAULT_SCHOOL_WEEKDAYS:
+            term_start += timedelta(days=1)
+        term_end = next_start - timedelta(days=1)
+        while term_end.weekday() not in DEFAULT_SCHOOL_WEEKDAYS:
+            term_end -= timedelta(days=1)
+        if term_start <= term_end:
+            terms.append(Term("", term_start, term_end))
+    return _name_inferred_terms(terms)
+
+
+def _season(day: date) -> str:
+    if day.month <= 3:
+        return "Spring"
+    if day.month <= 7:
+        return "Summer"
+    return "Autumn"
+
+
+def _name_inferred_terms(terms: list[Term]) -> tuple[Term, ...]:
+    """Label spans by season, numbering them when a season repeats in a year."""
+    keys = [(term.start.year, _season(term.start)) for term in terms]
+    totals = Counter(keys)
+    seen: Counter[tuple[int, str]] = Counter()
+    named: list[Term] = []
+    for term, key in zip(terms, keys):
+        label = f"{key[1]} Term"
+        if totals[key] > 1:
+            seen[key] += 1
+            label = f"{label} {seen[key]}"
+        named.append(Term(label, term.start, term.end))
+    return tuple(named)
+
+
 def build_school_calendar(
     events: Iterable[tuple[date, date, str]],
     term_keywords: Iterable[str] | None = None,
@@ -576,7 +648,12 @@ def build_school_calendar(
     for start, end, summary in events:
         text = summary.lower()
         span = max(1, min((end - start).days, MAX_BREAK_DAYS))
-        if any(k in text for k in break_kw):
+        seasonal_break = (
+            span > 1
+            and not any(k in text for k in term_kw)
+            and any(k in text for k in SEASONAL_BREAK_WORDS)
+        )
+        if any(k in text for k in break_kw) or seasonal_break:
             name = summary.strip() or "School holiday"
             for offset in range(span):
                 day = start + timedelta(days=offset)
@@ -586,6 +663,10 @@ def build_school_calendar(
         elif any(k in text for k in term_kw) and (end - start).days > 1:
             terms.append(Term(summary.strip(), start, end - timedelta(days=1)))
     terms.sort(key=lambda t: t.start)
+    if not terms:
+        # No explicit term events: infer spans between half terms and longer
+        # holidays, so holiday-only feeds still get term progress.
+        terms = list(_infer_terms(breaks))
     return SchoolCalendar(
         tuple(terms),
         frozenset(breaks),
