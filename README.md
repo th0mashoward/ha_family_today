@@ -11,16 +11,12 @@ One merged "today" view across your calendars: a per-person agenda, a school
 day flag, bin collections (from a [Waste Collection Schedule] calendar or manual
 rules), and bundled Lovelace cards for the day and for school terms.
 
-<!-- Screenshots: save PNGs as assets/screenshots/day-card.png and
-     assets/screenshots/school-card.png, then delete the surrounding comment.
-     Absolute URLs are used so the images also render on the HACS store page.
-
 ## Screenshots
 
 | Day card | School card |
 | :---: | :---: |
-| ![Day card](https://raw.githubusercontent.com/th0mashoward/ha_family_today/master/assets/screenshots/day-card.png) | ![School card](https://raw.githubusercontent.com/th0mashoward/ha_family_today/master/assets/screenshots/school-card.png) |
--->
+| ![Day card](https://raw.githubusercontent.com/th0mashoward/ha_family_today/master/assets/screenshots/today-overview.png) | ![School card](https://raw.githubusercontent.com/th0mashoward/ha_family_today/master/assets/screenshots/school-card.png) |
+
 
 ## Install
 
