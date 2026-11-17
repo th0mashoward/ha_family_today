@@ -105,3 +105,11 @@ export interface CardConfig {
   hide_past?: boolean;
   colors?: Record<string, string>;
 }
+
+export interface SchoolCardConfig {
+  type: string;
+  entity?: string;
+  title?: string;
+  max_breaks?: number;
+  colors?: Record<string, string>;
+}

@@ -37,6 +37,10 @@ const attrs = (over = {}) => ({
   next_event: upcoming,
   school_day: true, term: "Autumn 2",
   bins_today: [], bins_tomorrow: ["General waste", "Food waste"],
+  bin_meta: {
+    "General waste": { colour: "grey", icon: "mdi:trash-can" },
+    "Food waste": { icon: "mdi:food-apple-outline" },
+  },
   ...over,
 });
 const mkHass = (a, extra = {}) => ({
@@ -59,7 +63,13 @@ let el = await render({ entity: "sensor.family_today_today" }, mkHass(attrs()));
 let t = text(el);
 assert.match(t, /School day/);
 assert.match(t, /Bins out tonight/);
-assert.match(t, /General waste, Food waste/);
+assert.match(t, /General waste/);
+assert.match(t, /Food waste/);
+const chips = el.shadowRoot.querySelectorAll(".bin-chip");
+assert.equal(chips.length, 2, "one chip per bin");
+assert.equal(chips[0].querySelector("ha-icon").getAttribute("icon"), "mdi:trash-can");
+assert.match(chips[0].getAttribute("style") ?? "", /--bin-color:\s*#9ca3af/);
+assert.equal(chips[1].querySelector("ha-icon").getAttribute("icon"), "mdi:food-apple-outline");
 assert.match(t, /Next: Parents evening/);
 assert.match(t, /in 2h/);
 assert.match(t, /Book day/);
@@ -95,9 +105,276 @@ assert.match(el.shadowRoot.querySelector(".dialog-title").textContent, /Parents 
 el.shadowRoot.querySelector(".dialog .close").click();
 await el.updateComplete;
 
+// --- school chip opens a details dialog with the break reason + countdowns
+const schoolOff = attrs({
+  school_day: false,
+  term: "Autumn 2",
+  break_reason: "Half term",
+  school: {
+    is_school_day: false, reason: "Half term", term: "Autumn 2",
+    term_end: null, days_until_term_end: null,
+    next_term: "Autumn 2", next_term_start: "2026-11-02", days_until_next_term: 10,
+    next_break: null, next_break_start: null, days_until_next_break: null,
+    back_to_school: "2026-11-02", days_until_school: 10,
+  },
+});
+let schoolMoreInfo = 0;
+el = await render({ entity: "sensor.family_today_today" }, mkHass(schoolOff));
+el.addEventListener("hass-more-info", () => schoolMoreInfo++);
+const schoolChip = el.shadowRoot.querySelector(".chip");
+assert.equal(schoolChip.getAttribute("role"), "button", "school chip is interactive");
+schoolChip.click();
+await el.updateComplete;
+let schoolDialog = el.shadowRoot.querySelector(".school-dialog");
+assert.ok(schoolDialog, "school dialog opens");
+let schoolText = schoolDialog.textContent.replace(/\s+/g, " ");
+assert.match(schoolText, /Half term/);
+assert.match(schoolText, /Autumn 2/);
+assert.match(schoolText, /Back to school/);
+assert.match(schoolText, /in 10 days/);
+assert.equal(schoolMoreInfo, 0, "school chip does not open sensor more-info");
+window.dispatchEvent(new window.KeyboardEvent("keydown", { key: "Escape" }));
+await el.updateComplete;
+assert.equal(el.shadowRoot.querySelector(".school-dialog"), null, "Escape closes school dialog");
+
+// --- school day shows term end and next break countdowns
+el = await render({ entity: "sensor.family_today_today" }, mkHass(attrs({
+  school: {
+    is_school_day: true, reason: null, term: "Autumn 2",
+    term_end: "2026-12-18", days_until_term_end: 24,
+    next_term: "Spring 1", next_term_start: "2027-01-05", days_until_next_term: 42,
+    next_break: "Half term", next_break_start: "2026-10-26", days_until_next_break: 3,
+    back_to_school: null, days_until_school: null,
+  },
+})));
+el.shadowRoot.querySelector(".chip").click();
+await el.updateComplete;
+schoolDialog = el.shadowRoot.querySelector(".school-dialog");
+assert.ok(schoolDialog, "school dialog opens on a school day");
+schoolText = schoolDialog.textContent.replace(/\s+/g, " ");
+assert.match(schoolText, /School day/);
+assert.match(schoolText, /Term ends/);
+assert.match(schoolText, /in 24 days/);
+assert.match(schoolText, /Next break/);
+assert.match(schoolText, /Half term/);
+assert.match(schoolText, /in 3 days/);
+schoolDialog.querySelector(".close").click();
+await el.updateComplete;
+assert.equal(el.shadowRoot.querySelector(".school-dialog"), null, "close button closes school dialog");
+
+// --- per-child school calendars: one chip per child, each with its own status
+const tomSchool = {
+  is_school_day: true, reason: null, term: "Autumn 2",
+  term_end: "2026-12-18", days_until_term_end: 24,
+  next_term: "Spring 1", next_term_start: "2027-01-05", days_until_next_term: 42,
+  next_break: "Half term", next_break_start: "2026-10-26", days_until_next_break: 3,
+  back_to_school: null, days_until_school: null,
+};
+const samSchool = {
+  is_school_day: false, reason: "INSET Day", term: "Autumn 2",
+  term_end: "2026-12-18", days_until_term_end: 24,
+  next_term: "Spring 1", next_term_start: "2027-01-05", days_until_next_term: 42,
+  next_break: null, next_break_start: null, days_until_next_break: null,
+  back_to_school: "2026-11-09", days_until_school: 3,
+};
+el = await render(
+  { entity: "sensor.family_today_today" },
+  mkHass(attrs({
+    school_day: true, term: "Autumn 2", school: tomSchool,
+    school_by_person: { Tom: tomSchool, Sam: samSchool },
+    school_overrides: ["Sam"],
+  })),
+);
+let childChips = el.shadowRoot.querySelectorAll(".school-chips .chip");
+assert.equal(childChips.length, 2, "one school chip per child");
+t = text(el);
+assert.match(t, /Tom · School day/);
+assert.match(t, /Sam · INSET Day/);
+let childMoreInfo = 0;
+el.addEventListener("hass-more-info", () => childMoreInfo++);
+childChips[1].click();
+await el.updateComplete;
+let childDialog = el.shadowRoot.querySelector(".school-dialog");
+assert.ok(childDialog, "per-child school dialog opens");
+let childText = childDialog.textContent.replace(/\s+/g, " ");
+assert.match(childText, /INSET Day/);
+assert.match(childText, /Sam/);
+assert.match(childText, /Back to school/);
+assert.match(childText, /in 3 days/);
+assert.equal(childMoreInfo, 0, "per-child chip does not open sensor more-info");
+window.dispatchEvent(new window.KeyboardEvent("keydown", { key: "Escape" }));
+await el.updateComplete;
+assert.equal(el.shadowRoot.querySelector(".school-dialog"), null, "Escape closes per-child dialog");
+
+// --- dedicated school card: term progress + upcoming breaks
+const breakInfo = (name, start, end, daysUntil, kind = "holiday") => ({
+  name, start, end, days: null, days_until: daysUntil, kind,
+});
+const termStatus = {
+  is_school_day: true, reason: null, term: "Autumn 2",
+  term_start: "2026-11-02", term_end: "2026-12-18", days_until_term_end: 24,
+  term_school_days: 34, term_school_days_done: 23, term_progress: 68,
+  next_term: "Spring 1", next_term_start: "2027-01-05", days_until_next_term: 42,
+  next_break: "Half term", next_break_start: "2026-10-26", days_until_next_break: 3,
+  back_to_school: null, days_until_school: null,
+  upcoming_breaks: [
+    breakInfo("Half term", "2026-10-26", "2026-10-30", 3),
+    breakInfo("INSET Day", "2026-11-20", "2026-11-20", 28, "inset"),
+    breakInfo("Christmas Holidays", "2026-12-19", "2027-01-04", 57),
+  ],
+};
+async function renderSchool(config, hass) {
+  const card = window.document.createElement("family-today-school-card");
+  card.setConfig(config);
+  card.hass = hass;
+  window.document.body.appendChild(card);
+  await card.updateComplete;
+  return card;
+}
+
+let schoolCard = await renderSchool(
+  { entity: "sensor.family_today_today" },
+  mkHass(attrs({ school: termStatus, school_day: true, term: "Autumn 2" })),
+);
+let schoolText2 = text(schoolCard);
+assert.match(schoolText2, /School/);
+assert.match(schoolText2, /Autumn 2/);
+assert.match(schoolText2, /68%/);
+assert.match(schoolText2, /23 of 34 school days/);
+assert.match(schoolText2, /ends Fri 18 Dec/);
+assert.match(schoolText2, /Upcoming breaks/);
+assert.match(schoolText2, /Half term/);
+assert.match(schoolText2, /INSET Day/);
+assert.match(schoolText2, /in 28 days/);
+let progressBar = schoolCard.shadowRoot.querySelector('[role="progressbar"]');
+assert.equal(progressBar.getAttribute("aria-valuenow"), "68");
+assert.match(progressBar.querySelector(".bar-fill").getAttribute("style"), /width:\s*68%/);
+let insetRow = schoolCard.shadowRoot.querySelector(".break.inset");
+assert.ok(insetRow, "INSET breaks get their own style");
+assert.equal(insetRow.querySelector("ha-icon").getAttribute("icon"), "mdi:hammer-wrench");
+
+// holiday state: mid-term breaks say "Back to school", not the next term
+schoolCard = await renderSchool(
+  { entity: "sensor.family_today_today" },
+  mkHass(attrs({
+    school_day: false, term: "Autumn 2", break_reason: "Half term",
+    school: {
+      ...termStatus, is_school_day: false, reason: "Half term",
+      term: null, term_start: null, term_end: null, days_until_term_end: null,
+      term_school_days: null, term_school_days_done: null, term_progress: null,
+      next_term: "Spring 1", next_term_start: "2027-01-05", days_until_next_term: 49,
+      back_to_school: "2026-11-02", days_until_school: 6,
+      upcoming_breaks: [breakInfo("Half term", "2026-10-26", "2026-10-30", 0)],
+    },
+  })),
+);
+schoolText2 = text(schoolCard);
+assert.match(schoolText2, /Half term/);
+assert.match(schoolText2, /Back to school/);
+assert.match(schoolText2, /in 6 days/);
+assert.doesNotMatch(schoolText2, /Spring 1 starts/);
+assert.equal(schoolCard.shadowRoot.querySelector('[role="progressbar"]'), null, "no progress bar during a holiday");
+
+// a gap between terms is labelled with the term that starts
+schoolCard = await renderSchool(
+  { entity: "sensor.family_today_today" },
+  mkHass(attrs({
+    school_day: false, term: null, break_reason: "Summer holiday",
+    school: {
+      ...termStatus, is_school_day: false, reason: "Summer holiday",
+      term: null, term_start: null, term_end: null, days_until_term_end: null,
+      term_school_days: null, term_school_days_done: null, term_progress: null,
+      next_term: "Autumn 1", next_term_start: "2027-09-01", days_until_next_term: 20,
+      back_to_school: "2027-09-01", days_until_school: 20, upcoming_breaks: [],
+    },
+  })),
+);
+schoolText2 = text(schoolCard);
+assert.match(schoolText2, /Autumn 1 starts/);
+assert.match(schoolText2, /in 20 days/);
+
+// no term data at all: a hint instead of an empty section
+schoolCard = await renderSchool(
+  { entity: "sensor.family_today_today" },
+  mkHass(attrs({ school: null, school_day: true, term: null, break_reason: null })),
+);
+assert.match(text(schoolCard), /No term dates configured/);
+
+// per-child sections, each with its own progress and breaks
+const samTerm = {
+  ...termStatus, term: "Autumn 2", term_progress: 40,
+  term_school_days: 30, term_school_days_done: 12,
+  upcoming_breaks: [breakInfo("INSET Day", "2026-11-09", "2026-11-09", 0, "inset")],
+};
+schoolCard = await renderSchool(
+  { entity: "sensor.family_today_today", max_breaks: 2 },
+  mkHass(attrs({
+    school: termStatus,
+    school_by_person: { Tom: termStatus, Sam: samTerm },
+    school_overrides: ["Sam"],
+  })),
+);
+schoolText2 = text(schoolCard);
+assert.equal(schoolCard.shadowRoot.querySelectorAll(".section").length, 2, "one section per child");
+assert.equal(schoolCard.shadowRoot.querySelectorAll(".child-head .chip").length, 2);
+assert.match(schoolText2, /Tom/);
+assert.match(schoolText2, /Sam/);
+assert.match(schoolText2, /68%/);
+assert.match(schoolText2, /40%/);
+assert.equal(schoolCard.shadowRoot.querySelectorAll(".break").length, 3, "max_breaks applies per child");
+assert.ok(schoolCard.shadowRoot.querySelector(".break.inset"), "Sam's INSET day is shown");
+
+assert.throws(() => {
+  const bad = window.document.createElement("family-today-school-card");
+  bad.setConfig({ max_breaks: 0 });
+}, /max_breaks/);
+assert.ok(window.customElements.get("family-today-school-card-editor"));
+assert.ok(window.customCards.some((c) => c.type === "family-today-school-card"));
+
+schoolCard = await renderSchool({ entity: "sensor.nope" }, { language: "en", states: {} });
+assert.match(text(schoolCard), /not found/);
+
 // --- hide_past
 el = await render({ entity: "sensor.family_today_today", hide_past: true }, mkHass(attrs()));
 assert.doesNotMatch(text(el), /Early meeting/);
+
+// --- calendar health banner is not tied to the bin banners
+const health = (over = {}) => ({
+  entity_id: "calendar.sam", role: "person", person: "Sam", ok: true,
+  using_cache: false, consecutive_failures: 0, last_attempt: null,
+  last_success: null, last_error: null, ...over,
+});
+const withCalendar = (status, a = attrs()) =>
+  mkHass(
+    { ...a, calendar_status: { "calendar.sam": status }, calendars_ok: status.ok ? 1 : 0, calendars_total: 1 },
+    { "calendar.sam": { state: "on", attributes: { friendly_name: "Sam's calendar" } } },
+  );
+
+el = await render(
+  { entity: "sensor.family_today_today", show_bins: false },
+  withCalendar(health({ ok: false, using_cache: true, consecutive_failures: 1 }),
+    attrs({ bins_today: [], bins_tomorrow: [] })),
+);
+t = text(el);
+assert.match(t, /Showing saved events/, "cached events show a banner");
+assert.match(t, /Sam's calendar/, "banner names the calendar");
+assert.ok(el.shadowRoot.querySelector(".banner.muted"), "health banner is muted even with show_bins off");
+
+el = await render(
+  { entity: "sensor.family_today_today", show_bins: false },
+  withCalendar(health({ ok: false, using_cache: false, consecutive_failures: 1, last_error: "timeout" }),
+    attrs({ bins_today: [], bins_tomorrow: [] })),
+);
+t = text(el);
+assert.match(t, /Calendar unavailable/);
+assert.match(t, /Couldn't refresh Sam's calendar/);
+
+el = await render(
+  { entity: "sensor.family_today_today", show_bins: false },
+  withCalendar(health(), attrs({ bins_today: [], bins_tomorrow: [] })),
+);
+t = text(el);
+assert.doesNotMatch(t, /Showing saved events|Calendar unavailable/, "no banner when every calendar is healthy");
 
 // --- lanes layout includes people with no events
 el = await render({ entity: "sensor.family_today_today", layout: "lanes" }, mkHass(attrs()));
@@ -110,13 +387,22 @@ assert.equal(el.shadowRoot.querySelectorAll(".lane").length, 4);
 const quiet = attrs({ school_day: false, bins_tomorrow: [], bins_today: [] });
 el = await render({}, mkHass(quiet, {
   "sensor.family_today_next_bin_collection": {
-    state: "2026-11-19", attributes: { bins: ["Recycling"], days_until: 5 },
+    state: "2026-11-19",
+    attributes: {
+      bins: ["Recycling"],
+      days_until: 5,
+      bin_meta: { Recycling: { colour: "blue", icon: "mdi:recycle" } },
+    },
   },
 }));
 t = text(el);
 assert.match(t, /No school/);
 assert.match(t, /Next bins/);
-assert.match(t, /Recycling \(in 5 days\)/);
+assert.match(t, /in 5 days/);
+const nextChip = el.shadowRoot.querySelector(".banner.muted .bin-chip");
+assert.ok(nextChip, "next-bin chip rendered");
+assert.equal(nextChip.querySelector("ha-icon").getAttribute("icon"), "mdi:recycle");
+assert.match(nextChip.getAttribute("style") ?? "", /--bin-color:\s*#3b82f6/);
 
 // --- auto-discovers the entity when none configured and default id differs
 const hass = mkHass(attrs());

@@ -194,4 +194,71 @@ assert a.is_school_day(D(2026, 11, 9))
 assert not b.is_school_day(D(2026, 11, 9))
 assert b.break_reason(D(2026, 11, 9)) == "INSET Day"
 
+# ---- term progress (actual school days) and upcoming-break timeline
+progress_cal = mod.build_school_calendar([
+    (D(2026, 11, 2), D(2026, 11, 14), "Autumn Term 2"),   # ends Fri 13 Nov
+    (D(2026, 11, 6), D(2026, 11, 7), "INSET Day"),
+    (D(2026, 11, 16), D(2026, 11, 29), "Half term (staff)"),
+    (D(2026, 11, 30), D(2026, 12, 19), "Winter Term"),    # ends Fri 18 Dec
+    (D(2026, 12, 4), D(2026, 12, 5), "INSET Day"),
+    (D(2026, 12, 19), D(2027, 1, 5), "Christmas Holidays"),
+    (D(2027, 1, 5), D(2027, 2, 14), "Spring Term"),
+])
+progress = mod.Schedule(
+    inset_days=frozenset({D(2026, 11, 24)})  # already covered by half term
+).with_school_calendar(progress_cal)
+
+pst = progress.school_status(D(2026, 11, 10))
+assert pst.term == "Autumn Term 2" and pst.term_start == D(2026, 11, 2)
+assert pst.days_until_term_end == 3
+# 10 weekdays in the term minus the Fri 6 Nov INSET; done through Tue 10 Nov
+assert (pst.term_school_days, pst.term_school_days_done) == (9, 6)
+assert pst.term_progress == 67
+assert pst.upcoming_breaks[0].name == "Half term (staff)"
+assert pst.upcoming_breaks[0].start == D(2026, 11, 16)
+assert pst.upcoming_breaks[0].end == D(2026, 11, 28)
+assert pst.upcoming_breaks[0].days == 13
+assert pst.upcoming_breaks[0].days_until == 6
+assert pst.upcoming_breaks[0].kind == "holiday"
+assert pst.upcoming_breaks[1].name == "INSET Day"
+assert pst.upcoming_breaks[1].start == D(2026, 12, 4)
+assert pst.upcoming_breaks[1].days == 1
+assert pst.upcoming_breaks[1].kind == "inset"
+assert pst.upcoming_breaks[2].name == "Christmas Holidays"
+assert pst.upcoming_breaks[2].start == D(2026, 12, 19)
+assert pst.upcoming_breaks[2].end == D(2027, 1, 4)
+assert pst.upcoming_breaks[3].name == "School holiday"  # next term end, no feed event
+assert pst.upcoming_breaks[3].start == D(2027, 2, 14)
+
+progress_dict = pst.as_dict()
+assert progress_dict["term_start"] == "2026-11-02"
+assert progress_dict["term_progress"] == 67
+assert progress_dict["upcoming_breaks"][0]["start"] == "2026-11-16"
+assert progress_dict["upcoming_breaks"][0]["days"] == 13
+
+# progress keeps working on an INSET day inside the term
+inset_day = progress.school_status(D(2026, 12, 4))
+assert not inset_day.is_school_day and inset_day.reason == "INSET Day"
+assert inset_day.term == "Winter Term"
+assert (inset_day.term_school_days, inset_day.term_school_days_done) == (14, 4)
+assert inset_day.term_progress == 29
+
+# manual terms: gaps between terms become "School holiday" entries
+manual_progress = mod.Schedule.from_options({
+    "terms": [
+        {"name": "Autumn 2", "start": "2026-11-02", "end": "2026-11-13"},
+        {"name": "Spring 1", "start": "2026-11-30", "end": "2026-12-18"},
+    ],
+    "inset_days": ["2026-11-06", "2026-12-04"],
+})
+mst = manual_progress.school_status(D(2026, 11, 10))
+assert (mst.term_school_days, mst.term_school_days_done, mst.term_progress) == (9, 6, 67)
+assert mst.upcoming_breaks[0].name == "School holiday"
+assert mst.upcoming_breaks[0].start == D(2026, 11, 14)
+assert mst.upcoming_breaks[0].end == D(2026, 11, 29)
+assert mst.upcoming_breaks[1].name == "INSET day"
+assert mst.upcoming_breaks[1].start == D(2026, 12, 4)
+assert mst.upcoming_breaks[2].name == "School holiday"
+assert mst.upcoming_breaks[2].start == D(2026, 12, 19)
+
 print("all schedule tests passed")

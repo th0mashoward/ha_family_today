@@ -114,6 +114,14 @@ export function countdown(ms: number): string {
   return m ? `in ${h}h ${m}m` : `in ${h}h`;
 }
 
+/** "today" / "tomorrow" / "in N days" for a whole-day countdown. */
+export function inDays(days?: number | null): string {
+  if (days == null) return "";
+  if (days <= 0) return "today";
+  if (days === 1) return "tomorrow";
+  return `in ${days} days`;
+}
+
 export function defaults(config: Partial<CardConfig>): CardConfig {
   return {
     type: "custom:family-today-card",

@@ -1,4 +1,5 @@
 import "./card";
+import "./school-card";
 
 declare global {
   interface Window {
@@ -11,6 +12,12 @@ window.customCards.push({
   type: "family-today-card",
   name: "Family Today",
   description: "Today's family agenda, school day and bin collections in one card.",
+  preview: false,
+});
+window.customCards.push({
+  type: "family-today-school-card",
+  name: "Family Today School",
+  description: "Term progress and upcoming breaks, with one section per child.",
   preview: false,
 });
 

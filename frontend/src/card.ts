@@ -10,6 +10,7 @@ import type {
   FamilyTodayAttributes,
   Hass,
   HassEntity,
+  SchoolStatus,
 } from "./types";
 import {
   DEFAULT_BIN_ENTITY,
@@ -22,6 +23,7 @@ import {
   formatDateLong,
   formatDateShort,
   formatEventWhen,
+  inDays,
   statusOf,
   timeRange,
 } from "./helpers";
@@ -33,17 +35,23 @@ export class FamilyTodayCard extends LitElement {
     _config: { state: true },
     _now: { state: true },
     _selected: { state: true },
+    _schoolOpen: { state: true },
+    _schoolPerson: { state: true },
   };
   declare hass: Hass;
   declare _config: CardConfig;
   declare _now: number;
   declare _selected: FamilyEvent | null;
+  declare _schoolOpen: boolean;
+  declare _schoolPerson: string | null;
   private _timer?: number;
 
   constructor() {
     super();
     this._now = Date.now();
     this._selected = null;
+    this._schoolOpen = false;
+    this._schoolPerson = null;
   }
 
   // ---- HA card API ------------------------------------------------------
@@ -81,7 +89,10 @@ export class FamilyTodayCard extends LitElement {
   }
 
   private _onKeyDown = (ev: KeyboardEvent): void => {
-    if (ev.key === "Escape" && this._selected) this._selected = null;
+    if (ev.key !== "Escape") return;
+    this._selected = null;
+    this._schoolOpen = false;
+    this._schoolPerson = null;
   };
 
   private _openEvent(ev: FamilyEvent): void {
@@ -90,6 +101,23 @@ export class FamilyTodayCard extends LitElement {
 
   private _closeEvent(): void {
     this._selected = null;
+  }
+
+  private _openSchool(person: string | null = null): void {
+    this._schoolPerson = person;
+    this._schoolOpen = true;
+  }
+
+  private _closeSchool(): void {
+    this._schoolOpen = false;
+    this._schoolPerson = null;
+  }
+
+  private _schoolKey(ev: KeyboardEvent, person: string | null = null): void {
+    if (ev.key === "Enter" || ev.key === " ") {
+      ev.preventDefault();
+      this._openSchool(person);
+    }
   }
 
   private _eventKey(ev: KeyboardEvent, event: FamilyEvent): void {
@@ -160,12 +188,19 @@ export class FamilyTodayCard extends LitElement {
         ${cfg.layout === "lanes" ? this._lanes(a) : this._list(a)}
       </ha-card>
       ${this._selected ? this._eventDialog(this._selected) : nothing}
+      ${this._schoolOpen ? this._schoolDialog(a) : nothing}
     `;
   }
 
   private _header(a: FamilyTodayAttributes): TemplateResult {
     const date = formatDateLong(this.hass, this._now);
     const { title, show_school } = this._config;
+    const reason = a.school?.reason ?? a.break_reason ?? null;
+    const label = reason ?? (a.school_day ? "School day" : "No school");
+    const children =
+      (a.school_overrides?.length ?? 0) > 0
+        ? Object.entries(a.school_by_person ?? {})
+        : [];
     return html`
       <div class="header">
         <div class="titles">
@@ -173,13 +208,55 @@ export class FamilyTodayCard extends LitElement {
           ${title ? html`<div class="subtitle">${date}</div>` : nothing}
         </div>
         ${show_school
-          ? html`<span class=${classMap({ chip: true, school: a.school_day })}>
-              <ha-icon icon=${a.school_day ? "mdi:school" : "mdi:school-outline"}></ha-icon>
-              ${a.school_day ? "School day" : "No school"}
-            </span>`
+          ? children.length
+            ? html`<div class="school-chips">
+                ${children.map(([person, status]) =>
+                  this._schoolChip(person, status),
+                )}
+              </div>`
+            : html`<span
+                class=${classMap({ chip: true, school: a.school_day })}
+                role="button"
+                tabindex="0"
+                title=${label}
+                aria-label=${`${label}, show details`}
+                @click=${(e: Event) => {
+                  e.stopPropagation();
+                  this._openSchool();
+                }}
+                @keydown=${this._schoolKey}
+              >
+                <ha-icon
+                  icon=${a.school_day ? "mdi:school" : "mdi:school-outline"}
+                ></ha-icon>
+                ${a.school_day ? "School day" : "No school"}
+                <ha-icon class="more" icon="mdi:chevron-right"></ha-icon>
+              </span>`
           : nothing}
       </div>
     `;
+  }
+
+  private _schoolChip(person: string, status: SchoolStatus): TemplateResult {
+    const label = status.is_school_day ? "School day" : status.reason || "No school";
+    return html`<span
+      class=${classMap({ chip: true, school: status.is_school_day })}
+      role="button"
+      tabindex="0"
+      title=${label}
+      aria-label=${`${person}: ${label}, show details`}
+      @click=${(e: Event) => {
+        e.stopPropagation();
+        this._openSchool(person);
+      }}
+      @keydown=${(e: KeyboardEvent) => this._schoolKey(e, person)}
+    >
+      <ha-icon
+        icon=${status.is_school_day ? "mdi:school" : "mdi:school-outline"}
+      ></ha-icon>
+      ${person} · ${label}
+      <ha-icon class="more" icon="mdi:chevron-right"></ha-icon>
+    </span>`;
   }
 
   private _banners(a: FamilyTodayAttributes): TemplateResult | typeof nothing {
@@ -387,6 +464,120 @@ export class FamilyTodayCard extends LitElement {
     </div>`;
   }
 
+  // ---- school details ---------------------------------------------------
+  private _schoolDialog(a: FamilyTodayAttributes): TemplateResult {
+    const person = this._schoolPerson;
+    const s = (person ? a.school_by_person?.[person] : null) ?? a.school;
+    const isSchool = s?.is_school_day ?? a.school_day;
+    const reason = s?.reason ?? a.break_reason ?? null;
+    const term = s?.term ?? a.term;
+    const title = isSchool ? "School day" : reason || "No school";
+    const subtitle = [person, term].filter(Boolean).join(" · ");
+    const when = (iso?: string | null, days?: number | null): string =>
+      [iso ? formatDateShort(this.hass, iso) : "", days != null ? inDays(days) : ""]
+        .filter(Boolean)
+        .join(" · ");
+    const rows: TemplateResult[] = [];
+
+    if (isSchool) {
+      if (s?.term_end) {
+        rows.push(
+          this._detail(
+            "mdi:calendar-end",
+            "Term ends",
+            when(s.term_end, s.days_until_term_end),
+          ),
+        );
+      }
+      if (
+        s?.next_break &&
+        s.next_break_start &&
+        (s.days_until_term_end == null ||
+          (s.days_until_next_break ?? Infinity) < s.days_until_term_end)
+      ) {
+        rows.push(
+          this._detail(
+            "mdi:beach",
+            "Next break",
+            `${s.next_break} · ${when(s.next_break_start, s.days_until_next_break)}`,
+          ),
+        );
+      }
+    } else if (s) {
+      if (s.back_to_school) {
+        rows.push(
+          this._detail(
+            "mdi:school",
+            "Back to school",
+            when(s.back_to_school, s.days_until_school),
+          ),
+        );
+      }
+      if (s.next_term && s.next_term_start && s.next_term_start !== s.back_to_school) {
+        rows.push(
+          this._detail(
+            "mdi:calendar-start",
+            "Next term",
+            `${s.next_term} · ${when(s.next_term_start, s.days_until_next_term)}`,
+          ),
+        );
+      }
+      if (s.term_end) {
+        rows.push(
+          this._detail(
+            "mdi:calendar-end",
+            "Term ends",
+            when(s.term_end, s.days_until_term_end),
+          ),
+        );
+      }
+    }
+
+    if (!rows.length) {
+      rows.push(
+        html`<div class="detail muted-row">
+          <ha-icon icon="mdi:information-outline"></ha-icon>
+          <span>No term dates configured.</span>
+        </div>`,
+      );
+    }
+
+    return html`<div
+      class="overlay"
+      @click=${(e: Event) => {
+        e.stopPropagation();
+        this._closeSchool();
+      }}
+    >
+      <div
+        class="dialog school-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label=${person ? `${person}: ${title}` : title}
+        @click=${(e: Event) => e.stopPropagation()}
+      >
+        <div class="dialog-head">
+          <div>
+            <div class="dialog-title">${title}</div>
+            ${subtitle ? html`<div class="dialog-sub">${subtitle}</div>` : nothing}
+          </div>
+          <button class="close" aria-label="Close" @click=${this._closeSchool}>
+            <ha-icon icon="mdi:close"></ha-icon>
+          </button>
+        </div>
+        <div class="dialog-body">${rows}</div>
+      </div>
+    </div>`;
+  }
+
+  private _detail(icon: string, label: string, value: string): TemplateResult {
+    return html`<div class="detail">
+      <ha-icon icon=${icon}></ha-icon>
+      <span class="detail-label">${label}</span>
+      <span class="detail-value">${value}</span>
+    </div>`;
+  }
+
   private _eventDialog(ev: FamilyEvent): TemplateResult {
     return html`<div
       class="overlay"
@@ -434,8 +625,14 @@ export class FamilyTodayCard extends LitElement {
     .title { font-size: 1.3em; font-weight: 500; color: var(--primary-text-color); }
     .subtitle { color: var(--secondary-text-color); font-size: 0.9em; }
     .chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px;
-      background: var(--secondary-background-color); color: var(--secondary-text-color); font-size: 0.85em; white-space: nowrap; }
+      background: var(--secondary-background-color); color: var(--secondary-text-color); font-size: 0.85em; white-space: nowrap;
+      cursor: pointer; user-select: none; }
+    .chip:hover { filter: brightness(0.96); }
+    .chip:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
     .chip ha-icon { --mdc-icon-size: 16px; }
+    .chip .more { --mdc-icon-size: 16px; margin-left: -2px; opacity: 0.6; }
+    .school-chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+    .school-chips .chip { max-width: 100%; }
     .chip.school { background: rgba(var(--rgb-primary-color, 3, 169, 244), 0.15); color: var(--primary-color); }
     .banners { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
     .banner { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px;
@@ -493,6 +690,10 @@ export class FamilyTodayCard extends LitElement {
     .dialog-body { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
     .detail { display: flex; align-items: center; gap: 8px; }
     .detail ha-icon { --mdc-icon-size: 18px; color: var(--secondary-text-color); flex: none; }
+    .detail-label { color: var(--secondary-text-color); }
+    .detail-value { margin-left: auto; min-width: 0; text-align: right; color: var(--primary-text-color);
+      overflow-wrap: anywhere; }
+    .muted-row { color: var(--secondary-text-color); }
     .description { padding-top: 12px; line-height: 1.4; overflow-wrap: anywhere; white-space: pre-wrap;
       border-top: 1px solid var(--divider-color, rgba(0, 0, 0, 0.12)); }
   `;
