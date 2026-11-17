@@ -15,5 +15,5 @@ class FamilyTodayEntity(CoordinatorEntity[FamilyTodayCoordinator]):
         self._attr_unique_id = f"{entry_id}_{key}"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, entry_id)},
-            "name": "Family Today",
+            "name": self.coordinator.entry_title,
         }

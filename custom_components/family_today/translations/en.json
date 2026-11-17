@@ -3,8 +3,9 @@
     "step": {
       "user": {
         "title": "Family Today",
-        "description": "Choose the calendars to combine into one 'today' view.",
+        "description": "Choose a name for this instance and the calendars to combine into one 'today' view. Add the integration again with a different name for another household or dashboard.",
         "data": {
+          "name": "Name",
           "calendars": "Calendars"
         }
       },
@@ -20,7 +21,7 @@
       "invalid_people": "Check the calendar owner lines."
     },
     "abort": {
-      "already_configured": "Family Today is already set up."
+      "already_configured": "That name is already in use. Pick a different name."
     }
   },
   "options": {

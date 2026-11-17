@@ -1,6 +1,7 @@
 """Config and options flow for Family Today."""
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import voluptuous as vol
@@ -20,21 +21,26 @@ from homeassistant.helpers.selector import (
 
 from .const import (
     CONF_BIN_ALIASES,
+    CONF_BIN_APPEARANCE,
     CONF_BIN_CALENDAR,
     CONF_BIN_MOVES,
     CONF_BINS,
     CONF_CALENDARS,
     CONF_INSET_DAYS,
+    CONF_NAME,
     CONF_SCHOOL_BREAK_KEYWORDS,
     CONF_SCHOOL_CALENDAR,
     CONF_SCHOOL_TERM_KEYWORDS,
     CONF_SCHOOL_WEEKDAYS,
+    CONF_SCHOOLS,
     CONF_TERMS,
+    DEFAULT_NAME,
     DOMAIN,
 )
 from .parsing import (
     ParseError,
     format_aliases,
+    format_bin_appearance,
     format_bin_rules,
     format_dates,
     format_keywords,
@@ -75,25 +81,38 @@ def _default_name(hass, entity_id: str) -> str:
     return entity_id.split(".", 1)[1].replace("_", " ").title()
 
 
+def _slugify(value: str) -> str:
+    """Stable unique id from a display name (so entries can coexist)."""
+    return re.sub(r"[^a-z0-9]+", "_", value.lower()).strip("_") or DOMAIN
+
+
 class FamilyTodayConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Initial setup: pick calendars, then name each person."""
+    """Initial setup: name the instance, pick calendars, then name each person."""
 
     VERSION = 1
 
     def __init__(self) -> None:
         self._calendars: list[str] = []
+        self._name = DEFAULT_NAME
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None):
-        await self.async_set_unique_id(DOMAIN)
-        self._abort_if_unique_id_configured()
-
         if user_input is not None:
+            name = str(user_input.get(CONF_NAME) or DEFAULT_NAME).strip() or DEFAULT_NAME
+            # Name-based unique id also lets one household run several instances.
+            await self.async_set_unique_id(_slugify(name))
+            self._abort_if_unique_id_configured()
+            self._name = name
             self._calendars = list(user_input[CONF_CALENDARS])
             return await self.async_step_people()
 
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema({vol.Required(CONF_CALENDARS): _CAL_SELECTOR}),
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_NAME, default=DEFAULT_NAME): TextSelector(),
+                    vol.Required(CONF_CALENDARS): _CAL_SELECTOR,
+                }
+            ),
         )
 
     async def async_step_people(self, user_input: dict[str, Any] | None = None):
@@ -106,7 +125,7 @@ class FamilyTodayConfigFlow(ConfigFlow, domain=DOMAIN):
                 placeholders = {"error": str(err)}
             else:
                 return self.async_create_entry(
-                    title="Family Today", data={}, options={CONF_CALENDARS: mapping}
+                    title=self._name, data={}, options={CONF_CALENDARS: mapping}
                 )
         else:
             placeholders = {"error": ""}
