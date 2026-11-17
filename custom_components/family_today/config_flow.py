@@ -58,6 +58,7 @@ from .parsing import (
 )
 
 CONF_PEOPLE = "people"  # form field only; stored as CONF_CALENDARS mapping
+CONF_SCHOOL_CHILD = "school_child"  # form field only; selects the per-child override
 
 _CAL_SELECTOR = EntitySelector(EntitySelectorConfig(domain="calendar", multiple=True))
 _TEXT = TextSelector(TextSelectorConfig(multiline=True))
@@ -158,6 +159,7 @@ class FamilyTodayOptionsFlow(OptionsFlow):
     def __init__(self) -> None:
         self._options: dict[str, Any] | None = None
         self._pending_calendars: list[str] = []
+        self._school_child: str | None = None
 
     @property
     def opts(self) -> dict[str, Any]:
@@ -189,14 +191,15 @@ class FamilyTodayOptionsFlow(OptionsFlow):
         errors: dict[str, str] = {}
         placeholders = {"error": ""}
         if user_input is not None:
+            previous = dict(self.opts.get(CONF_CALENDARS, {}))
             try:
-                self.opts[CONF_CALENDARS] = parse_people(
-                    user_input[CONF_PEOPLE], self._pending_calendars
-                )
+                mapping = parse_people(user_input[CONF_PEOPLE], self._pending_calendars)
             except ParseError as err:
                 errors[CONF_PEOPLE] = "invalid_people"
                 placeholders = {"error": str(err)}
             else:
+                self.opts[CONF_CALENDARS] = mapping
+                self._remap_schools(previous, mapping)
                 return await self.async_step_init()
 
         existing = self.opts.get(CONF_CALENDARS, {})
@@ -216,7 +219,41 @@ class FamilyTodayOptionsFlow(OptionsFlow):
         )
 
     # ---- school ---------------------------------------------------------
+    def _remap_schools(
+        self, previous: dict[str, str], current: dict[str, str]
+    ) -> None:
+        """Keep per-child school overrides attached when people are renamed."""
+        schools = dict(self.opts.get(CONF_SCHOOLS) or {})
+        if not schools:
+            return
+        remapped: dict[str, dict[str, Any]] = {}
+        # Follow the calendar rather than the old name, so renames (including
+        # two people swapping names) keep each override on the right child.
+        for calendar, new_name in current.items():
+            old_name = previous.get(calendar)
+            if old_name is None or new_name in remapped:
+                continue
+            if old_name in schools:
+                remapped[new_name] = schools[old_name]
+        # A newly added calendar keeps an override already stored under that
+        # name; names that no longer own a calendar are pruned.
+        for new_name in current.values():
+            if new_name not in remapped and new_name in schools:
+                remapped[new_name] = schools[new_name]
+        if remapped:
+            self.opts[CONF_SCHOOLS] = remapped
+        else:
+            self.opts.pop(CONF_SCHOOLS, None)
+
     async def async_step_school(self, user_input: dict[str, Any] | None = None):
+        return self.async_show_menu(
+            step_id="school",
+            menu_options=["school_default", "school_child"],
+        )
+
+    async def async_step_school_default(
+        self, user_input: dict[str, Any] | None = None
+    ):
         errors: dict[str, str] = {}
         placeholders = {"error": ""}
         if user_input is not None:
@@ -279,10 +316,91 @@ class FamilyTodayOptionsFlow(OptionsFlow):
             suggested,
         )
         return self.async_show_form(
-            step_id="school",
+            step_id="school_default",
             data_schema=schema,
             errors=errors,
             description_placeholders=placeholders,
+        )
+
+    async def async_step_school_child(self, user_input: dict[str, Any] | None = None):
+        people = sorted(set(self.opts.get(CONF_CALENDARS, {}).values()))
+        if not people:
+            return self.async_abort(reason="no_people")
+        if user_input is not None:
+            self._school_child = user_input[CONF_SCHOOL_CHILD]
+            return await self.async_step_school_child_form()
+
+        schools = self.opts.get(CONF_SCHOOLS) or {}
+        suggested = next((person for person in people if person in schools), people[0])
+        selector = SelectSelector(
+            SelectSelectorConfig(
+                options=[
+                    SelectOptionDict(value=person, label=person)
+                    for person in people
+                ],
+                mode=SelectSelectorMode.DROPDOWN,
+            )
+        )
+        schema = self.add_suggested_values_to_schema(
+            vol.Schema({vol.Required(CONF_SCHOOL_CHILD): selector}),
+            {CONF_SCHOOL_CHILD: suggested},
+        )
+        return self.async_show_form(step_id="school_child", data_schema=schema)
+
+    async def async_step_school_child_form(
+        self, user_input: dict[str, Any] | None = None
+    ):
+        person = self._school_child
+        if not person:
+            return await self.async_step_school_child()
+
+        schools = dict(self.opts.get(CONF_SCHOOLS) or {})
+        override = dict(schools.get(person) or {})
+        if user_input is not None:
+            new_override: dict[str, Any] = {}
+            if calendar := user_input.get(CONF_SCHOOL_CALENDAR):
+                new_override["calendar"] = calendar
+            if term_kw := parse_keywords(user_input.get(CONF_SCHOOL_TERM_KEYWORDS)):
+                new_override["term_keywords"] = term_kw
+            if break_kw := parse_keywords(
+                user_input.get(CONF_SCHOOL_BREAK_KEYWORDS)
+            ):
+                new_override["break_keywords"] = break_kw
+            if new_override:
+                schools[person] = new_override
+            else:
+                schools.pop(person, None)
+            if schools:
+                self.opts[CONF_SCHOOLS] = schools
+            else:
+                self.opts.pop(CONF_SCHOOLS, None)
+            return await self.async_step_init()
+
+        suggested = {
+            CONF_SCHOOL_CALENDAR: override.get("calendar"),
+            CONF_SCHOOL_TERM_KEYWORDS: format_keywords(
+                override.get("term_keywords", [])
+            ),
+            CONF_SCHOOL_BREAK_KEYWORDS: format_keywords(
+                override.get("break_keywords", [])
+            ),
+        }
+        schema = self.add_suggested_values_to_schema(
+            vol.Schema(
+                {
+                    vol.Optional(CONF_SCHOOL_CALENDAR): EntitySelector(
+                        EntitySelectorConfig(domain="calendar")
+                    ),
+                    vol.Optional(CONF_SCHOOL_TERM_KEYWORDS): TextSelector(),
+                    vol.Optional(CONF_SCHOOL_BREAK_KEYWORDS): TextSelector(),
+                }
+            ),
+            suggested,
+        )
+        return self.async_show_form(
+            step_id="school_child_form",
+            data_schema=schema,
+            description_placeholders={"person": person},
         )
 
     # ---- bins -----------------------------------------------------------

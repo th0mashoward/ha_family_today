@@ -60,4 +60,15 @@ CARD_URL = "/family_today/family-today-card.js"
 CONF_SCHOOL_CALENDAR = "school_calendar"
 CONF_SCHOOL_TERM_KEYWORDS = "school_term_keywords"
 CONF_SCHOOL_BREAK_KEYWORDS = "school_break_keywords"
-SCHOOL_LOOKAHEAD_DAYS = 60
+# Per-person overrides, keyed by the display name used in CONF_CALENDARS:
+# schools: {"Tom": {"calendar": "calendar.tom_school",
+#                   "term_keywords": ["term"],
+#                   "break_keywords": ["holiday", "inset"]}}
+# Any missing field falls back to the shared school settings above.
+CONF_SCHOOLS = "schools"
+# Long enough to cover a whole holiday, so "back to school" countdowns stay
+# correct across a six-week summer break.
+SCHOOL_LOOKAHEAD_DAYS = 120
+# Look back over the current term so progress can count actual school days
+# (a term is shorter than this, including its breaks).
+SCHOOL_PAST_DAYS = 200

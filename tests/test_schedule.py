@@ -167,4 +167,31 @@ assert rules_only.bin_meta(["General waste"]) == {
 legacy = mod.Schedule.from_options({"bin_appearance": {"Recycling": "blue"}})
 assert legacy.bin_meta(["Recycling"])["Recycling"]["colour"] == "blue"
 
+# ---- per-child school calendars (same rules, different feeds)
+sibling_a = mod.build_school_calendar([
+    (D(2026, 11, 2), D(2026, 12, 19), "Autumn Term 2"),
+    (D(2026, 11, 6), D(2026, 11, 7), "INSET Day"),
+])
+sibling_b = mod.build_school_calendar([
+    (D(2026, 11, 2), D(2026, 12, 19), "Autumn Term 2"),
+    (D(2026, 11, 9), D(2026, 11, 10), "INSET Day"),
+])
+base = mod.Schedule()
+a = base.with_school_calendar(sibling_a)
+b = base.with_school_calendar(sibling_b)
+assert base.school_calendar is None, "per-child views do not mutate the shared rules"
+
+a_status = a.school_status(D(2026, 11, 6))
+b_status = b.school_status(D(2026, 11, 6))
+assert not a_status.is_school_day and a_status.reason == "INSET Day"
+assert b_status.is_school_day
+assert b_status.next_break == "INSET Day"
+assert b_status.days_until_next_break == 3
+assert a_status.back_to_school == D(2026, 11, 9)
+
+# the siblings disagree on the Monday, so one has school and one does not
+assert a.is_school_day(D(2026, 11, 9))
+assert not b.is_school_day(D(2026, 11, 9))
+assert b.break_reason(D(2026, 11, 9)) == "INSET Day"
+
 print("all schedule tests passed")
