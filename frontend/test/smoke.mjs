@@ -251,7 +251,7 @@ assert.equal(progressBar.getAttribute("aria-valuenow"), "68");
 assert.match(progressBar.querySelector(".bar-fill").getAttribute("style"), /width:\s*68%/);
 let insetRow = schoolCard.shadowRoot.querySelector(".break.inset");
 assert.ok(insetRow, "INSET breaks get their own style");
-assert.equal(insetRow.querySelector("ha-icon").getAttribute("icon"), "mdi:hammer-wrench");
+assert.equal(insetRow.querySelector("ha-icon").getAttribute("icon"), "mdi:book-open");
 
 // holiday state: mid-term breaks say "Back to school", not the next term
 schoolCard = await renderSchool(

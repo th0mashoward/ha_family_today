@@ -259,7 +259,7 @@ export class FamilyTodaySchoolCard extends LitElement {
         : formatDateShort(this.hass, brk.start);
     const inset = brk.kind === "inset";
     return html`<div class=${classMap({ break: true, inset })}>
-      <ha-icon icon=${inset ? "mdi:hammer-wrench" : "mdi:beach"}></ha-icon>
+      <ha-icon icon=${inset ? "mdi:book-open" : "mdi:beach"}></ha-icon>
       <span class="break-name">${brk.name}</span>
       <span class="break-count">${inDays(brk.days_until)}</span>
       <span class="break-when">${when}</span>
