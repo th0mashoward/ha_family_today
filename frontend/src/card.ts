@@ -174,7 +174,7 @@ export class FamilyTodayCard extends LitElement {
     if (!found) {
       return html`<ha-card>
         <div class="empty">
-          ${this.hass.locale("ui.card.family_today.sensor_not_found") ?? "Family Today sensor not found"}
+          ${this.hass.translate("ui.card.family_today.sensor_not_found") ?? "Family Today sensor not found"}
           (<code>${this._config.entity ?? DEFAULT_ENTITY}</code>).
         </div>
       </ha-card>`;
@@ -196,7 +196,7 @@ export class FamilyTodayCard extends LitElement {
     const date = formatDateLong(this.hass, this._now);
     const { title, show_school } = this._config;
     const reason = a.school?.reason ?? a.break_reason ?? null;
-    const label = reason ?? (a.school_day ? this.hass.locale("ui.card.family_today.school_day") : this.hass.locale("ui.card.family_today.no_school"));
+    const label = reason ?? (a.school_day ? this.hass.translate("ui.card.family_today.school_day") : this.hass.translate("ui.card.family_today.no_school"));
     const children =
       (a.school_overrides?.length ?? 0) > 0
         ? Object.entries(a.school_by_person ?? {})
@@ -219,7 +219,7 @@ export class FamilyTodayCard extends LitElement {
                 role="button"
                 tabindex="0"
                 title=${label}
-                aria-label=${`${this.hass.locale("ui.card.family_today.show_details") ?? "Show details"}, ${label}`}
+                aria-label=${`${this.hass.translate("ui.card.family_today.show_details") ?? "Show details"}, ${label}`}
                 @click=${(e: Event) => {
                   e.stopPropagation();
                   this._openSchool();
@@ -229,7 +229,7 @@ export class FamilyTodayCard extends LitElement {
                 <ha-icon
                   icon=${a.school_day ? "mdi:school" : "mdi:school-outline"}
                 ></ha-icon>
-                ${a.school_day ? this.hass.locale("ui.card.family_today.school_day") : this.hass.locale("ui.card.family_today.no_school")}
+                ${a.school_day ? this.hass.translate("ui.card.family_today.school_day") : this.hass.translate("ui.card.family_today.no_school")}
                 <ha-icon class="more" icon="mdi:chevron-right"></ha-icon>
               </span>`
           : nothing}
@@ -238,13 +238,13 @@ export class FamilyTodayCard extends LitElement {
   }
 
   private _schoolChip(person: string, status: SchoolStatus): TemplateResult {
-    const label = status.is_school_day ? this.hass.locale("ui.card.family_today.school_day") : status.reason || this.hass.locale("ui.card.family_today.no_school");
+    const label = status.is_school_day ? this.hass.translate("ui.card.family_today.school_day") : status.reason || this.hass.translate("ui.card.family_today.no_school");
     return html`<span
       class=${classMap({ chip: true, school: status.is_school_day })}
       role="button"
       tabindex="0"
       title=${label}
-      aria-label=${`${person}: ${label}, ${this.hass.locale("ui.card.family_today.show_details") ?? "Show details"}`}
+      aria-label=${`${person}: ${label}, ${this.hass.translate("ui.card.family_today.show_details") ?? "Show details"}`}
       @click=${(e: Event) => {
         e.stopPropagation();
         this._openSchool(person);
@@ -270,14 +270,14 @@ export class FamilyTodayCard extends LitElement {
     const meta = a.bin_meta ?? {};
     if (a.bins_today?.length) {
       rows.push(
-        this._banner("mdi:trash-can", this.hass.locale("ui.card.family_today.bin_day_today") ?? "Bin day today", this._binChips(a.bins_today, meta)),
+        this._banner("mdi:trash-can", this.hass.translate("ui.card.family_today.bin_day_today") ?? "Bin day today", this._binChips(a.bins_today, meta)),
       );
     }
     if (a.bins_tomorrow?.length) {
       rows.push(
         this._banner(
           "mdi:trash-can-outline",
-          this.hass.locale("ui.card.family_today.bins_out_tonight") ?? "Bins out tonight",
+          this.hass.translate("ui.card.family_today.bins_out_tonight") ?? "Bins out tonight",
           this._binChips(a.bins_tomorrow, meta),
         ),
       );
@@ -290,11 +290,11 @@ export class FamilyTodayCard extends LitElement {
           (next.attributes.bin_meta as Record<string, BinAppearance> | undefined) ?? meta;
         const days = next.attributes.days_until as number | null | undefined;
         const when =
-          days === 1 ? this.hass.locale("ui.card.family_today.tomorrow") ?? "tomorrow" : days != null ? `in ${days} days` : "";
+          days === 1 ? this.hass.translate("ui.card.family_today.tomorrow") ?? "tomorrow" : days != null ? `in ${days} days` : "";
         rows.push(
           this._banner(
             "mdi:calendar-clock",
-            `${this.hass.locale("ui.card.family_today.next_bins") ?? "Next bins"} · ${formatDateShort(this.hass, next.state)}`,
+            `${this.hass.translate("ui.card.family_today.next_bins") ?? "Next bins"} · ${formatDateShort(this.hass, next.state)}`,
             html`${bins.length ? this._binChips(bins, nextMeta) : nothing}${when
               ? html`<span class="when">(${when})</span>`
               : nothing}`,
@@ -321,10 +321,10 @@ export class FamilyTodayCard extends LitElement {
     const hasFreshData = failed.some((s) => !s.using_cache);
     return this._banner(
       "mdi:calendar-alert",
-      hasFreshData ? (this.hass.locale("ui.card.family_today.calendar_unavailable") ?? "Calendar unavailable") : (this.hass.locale("ui.card.family_today.showing_saved_events") ?? "Showing saved events"),
+      hasFreshData ? (this.hass.translate("ui.card.family_today.calendar_unavailable") ?? "Calendar unavailable") : (this.hass.translate("ui.card.family_today.showing_saved_events") ?? "Showing saved events"),
       hasFreshData
         ? `Couldn't refresh ${list}`
-        : `${this.hass.locale("ui.card.family_today.today_events_from") ?? "Today's events from"} ${list} ${this.hass.locale("ui.card.family_today.from_earlier_refresh") ?? "are from an earlier refresh"}`,
+        : `${this.hass.translate("ui.card.family_today.today_events_from") ?? "Today's events from"} ${list} ${this.hass.translate("ui.card.family_today.from_earlier_refresh") ?? "are from an earlier refresh"}`,
       true,
     );
   }
@@ -373,7 +373,7 @@ export class FamilyTodayCard extends LitElement {
       class="next"
       role="button"
       tabindex="0"
-      aria-label=${`${this.hass.locale("ui.card.family_today.details_for") ?? "Details for"} ${ev.summary}`}
+      aria-label=${`${this.hass.translate("ui.card.family_today.details_for") ?? "Details for"} ${ev.summary}`}
       @click=${(e: Event) => {
         e.stopPropagation();
         this._openEvent(ev);
@@ -381,7 +381,7 @@ export class FamilyTodayCard extends LitElement {
       @keydown=${(e: KeyboardEvent) => this._eventKey(e, ev)}
     >
       <span class="dot" style=${styleMap({ background: this._color(ev.person) })}></span>
-      <span class="next-text"><strong>${this.hass.locale("ui.card.family_today.next") ?? "Next"}</strong>: ${ev.summary}</span>
+      <span class="next-text"><strong>${this.hass.translate("ui.card.family_today.next") ?? "Next"}</strong>: ${ev.summary}</span>
       <span class="next-when">${countdown(ms)}</span>
     </div>`;
   }
@@ -398,7 +398,7 @@ export class FamilyTodayCard extends LitElement {
     const allDay = all.filter((e) => e.all_day);
     const timed = all.filter((e) => !e.all_day);
 
-    if (!all.length) return html`<div class="empty">${this.hass.locale("ui.card.family_today.nothing_scheduled_today") ?? "Nothing scheduled today"}</div>`;
+    if (!all.length) return html`<div class="empty">${this.hass.translate("ui.card.family_today.nothing_scheduled_today") ?? "Nothing scheduled today"}</div>`;
 
     return html`
       ${this._config.show_all_day && allDay.length
@@ -409,7 +409,7 @@ export class FamilyTodayCard extends LitElement {
                 style=${styleMap({ "--person-color": this._color(ev.person) })}
                 role="button"
                 tabindex="0"
-                aria-label=${`${this.hass.locale("ui.card.family_today.details_for") ?? "Details for"} ${ev.summary}`}
+                aria-label=${`${this.hass.translate("ui.card.family_today.details_for") ?? "Details for"} ${ev.summary}`}
                 @click=${(e: Event) => {
                   e.stopPropagation();
                   this._openEvent(ev);
@@ -426,7 +426,7 @@ export class FamilyTodayCard extends LitElement {
 
   private _lanes(a: FamilyTodayAttributes): TemplateResult {
     const people = a.people?.length ? a.people : Object.keys(a.by_person ?? {});
-    if (!people.length) return html`<div class="empty">${this.hass.locale("ui.card.family_today.nothing_scheduled_today") ?? "Nothing scheduled today"}</div>`;
+    if (!people.length) return html`<div class="empty">${this.hass.translate("ui.card.family_today.nothing_scheduled_today") ?? "Nothing scheduled today"}</div>`;
     return html`<div class="lanes">
       ${people.map((p) => {
         const events = this._visible(a.by_person?.[p] ?? []);
@@ -434,7 +434,7 @@ export class FamilyTodayCard extends LitElement {
           <div class="lane-head"><span class="dot"></span>${p}</div>
           ${events.length
             ? events.map((e) => this._eventRow(e))
-            : html`<div class="lane-empty">${this.hass.locale("ui.card.family_today.nothing_on") ?? "Nothing on"}</div>`}
+            : html`<div class="lane-empty">${this.hass.translate("ui.card.family_today.nothing_on") ?? "Nothing on"}</div>`}
         </div>`;
       })}
     </div>`;
@@ -447,7 +447,7 @@ export class FamilyTodayCard extends LitElement {
       style=${styleMap({ "--person-color": this._color(ev.person) })}
       role="button"
       tabindex="0"
-      aria-label=${`${this.hass.locale("ui.card.family_today.details_for") ?? "Details for"} ${ev.summary}`}
+      aria-label=${`${this.hass.translate("ui.card.family_today.details_for") ?? "Details for"} ${ev.summary}`}
       @click=${(e: Event) => {
         e.stopPropagation();
         this._openEvent(ev);
@@ -471,7 +471,7 @@ export class FamilyTodayCard extends LitElement {
     const isSchool = s?.is_school_day ?? a.school_day;
     const reason = s?.reason ?? a.break_reason ?? null;
     const term = s?.term ?? a.term;
-    const title = isSchool ? this.hass.locale("ui.card.family_today.school_day") : reason || this.hass.locale("ui.card.family_today.no_school");
+    const title = isSchool ? this.hass.translate("ui.card.family_today.school_day") : reason || this.hass.translate("ui.card.family_today.no_school");
     const subtitle = [person, term].filter(Boolean).join(" · ");
     const when = (iso?: string | null, days?: number | null): string =>
       [iso ? formatDateShort(this.hass, iso) : "", days != null ? inDays(days) : ""]
@@ -484,7 +484,7 @@ export class FamilyTodayCard extends LitElement {
         rows.push(
           this._detail(
             "mdi:calendar-end",
-            this.hass.locale("ui.card.family_today.term_ends") ?? "Term ends",
+            this.hass.translate("ui.card.family_today.term_ends") ?? "Term ends",
             when(s.term_end, s.days_until_term_end),
           ),
         );
@@ -498,7 +498,7 @@ export class FamilyTodayCard extends LitElement {
         rows.push(
           this._detail(
             "mdi:beach",
-            this.hass.locale("ui.card.family_today.next_break") ?? "Next break",
+            this.hass.translate("ui.card.family_today.next_break") ?? "Next break",
             `${s.next_break} · ${when(s.next_break_start, s.days_until_next_break)}`,
           ),
         );
@@ -508,7 +508,7 @@ export class FamilyTodayCard extends LitElement {
         rows.push(
           this._detail(
             "mdi:school",
-            this.hass.locale("ui.card.family_today.back_to_school") ?? "Back to school",
+            this.hass.translate("ui.card.family_today.back_to_school") ?? "Back to school",
             when(s.back_to_school, s.days_until_school),
           ),
         );
@@ -517,7 +517,7 @@ export class FamilyTodayCard extends LitElement {
         rows.push(
           this._detail(
             "mdi:calendar-start",
-            this.hass.locale("ui.card.family_today.next_term") ?? "Next term",
+            this.hass.translate("ui.card.family_today.next_term") ?? "Next term",
             `${s.next_term} · ${when(s.next_term_start, s.days_until_next_term)}`,
           ),
         );
@@ -526,7 +526,7 @@ export class FamilyTodayCard extends LitElement {
         rows.push(
           this._detail(
             "mdi:calendar-end",
-            this.hass.locale("ui.card.family_today.term_ends") ?? "Term ends",
+            this.hass.translate("ui.card.family_today.term_ends") ?? "Term ends",
             when(s.term_end, s.days_until_term_end),
           ),
         );
@@ -537,7 +537,7 @@ export class FamilyTodayCard extends LitElement {
       rows.push(
         html`<div class="detail muted-row">
           <ha-icon icon="mdi:information-outline"></ha-icon>
-          <span>${this.hass.locale("ui.card.family_today.no_term_dates_configured") ?? "No term dates configured."}</span>
+          <span>${this.hass.translate("ui.card.family_today.no_term_dates_configured") ?? "No term dates configured."}</span>
         </div>`,
       );
     }
@@ -561,7 +561,7 @@ export class FamilyTodayCard extends LitElement {
             <div class="dialog-title">${title}</div>
             ${subtitle ? html`<div class="dialog-sub">${subtitle}</div>` : nothing}
           </div>
-          <button class="close" aria-label=${this.hass.locale("ui.card.family_today.close") ?? "Close"} @click=${this._closeSchool}>
+          <button class="close" aria-label=${this.hass.translate("ui.card.family_today.close") ?? "Close"} @click=${this._closeSchool}>
             <ha-icon icon="mdi:close"></ha-icon>
           </button>
         </div>
@@ -598,7 +598,7 @@ export class FamilyTodayCard extends LitElement {
             <div class="dialog-title">${ev.summary}</div>
             <div class="dialog-sub">${formatEventWhen(this.hass, ev)}</div>
           </div>
-          <button class="close" aria-label=${this.hass.locale("ui.card.family_today.close") ?? "Close"} @click=${this._closeEvent}>
+          <button class="close" aria-label=${this.hass.translate("ui.card.family_today.close") ?? "Close"} @click=${this._closeEvent}>
             <ha-icon icon="mdi:close"></ha-icon>
           </button>
         </div>

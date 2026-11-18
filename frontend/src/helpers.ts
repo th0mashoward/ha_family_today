@@ -52,12 +52,12 @@ export function statusOf(ev: FamilyEvent, now: number): EventStatus {
 }
 
 function locale(hass: Hass): string {
-  return hass.locale?.language || hass.language || "en";
+  return hass.locale?.language ?? hass.language ?? "en";
 }
 
 export function formatTime(hass: Hass, iso: string): string {
-  const tf = hass.locale?.time_format;
-  const hour12 = tf === "12" ? true : tf === "24" ? false : undefined;
+  const tf = hass.locale?.time_format ?? "24";
+  const hour12 = tf === "12" ? true : false;
   return new Date(iso).toLocaleTimeString(locale(hass), {
     hour: "numeric",
     minute: "2-digit",

@@ -124,6 +124,25 @@
   },
   "card": {
     "family_today_card": {
+      "name": "Family Today Card",
+      "options": {
+        "list": "Chronological list",
+        "lanes": "Lane per person"
+      },
+      "show_school": "Show school day badge",
+      "show_bins": "Show bin banners",
+      "show_next_bin": "Show next bin collection",
+      "show_all_day": "Show all-day events",
+      "hide_past": "Hide events that have finished",
+      "options": {
+        "list": "Chronological list",
+        "lanes": "Lane per person"
+      },
+      "show_school": "Show school day badge",
+      "show_bins": "Show bin banners",
+      "show_next_bin": "Show next bin collection",
+      "show_all_day": "Show all-day events",
+      "hide_past": "Hide events that have finished",
       "sensor_not_found": "Family Today sensor not found",
       "school_day": "School day",
       "no_school": "No school",

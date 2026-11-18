@@ -90,10 +90,34 @@ export interface HassEntity {
   attributes: Record<string, any>;
 }
 
+export interface HassLocale {
+  language: string;
+  time_format: "12" | "24";
+}
+
 export interface Hass {
   states: Record<string, HassEntity>;
-  language: string;
-  locale?: (key: string) => string;
+  language?: string;
+  hass?: boolean;
+  locale?: HassLocale;
+  translate(key: string, substitutions?: Record<string, any>): string;
+  themes?: Theme;
+}
+
+export interface Locale extends HassLocale {
+  (key: string): string;
+}
+
+export interface Theme {
+  effective?: EffectiveTheme;
+}
+
+export interface EffectiveTheme {
+  colors?: Colors;
+}
+
+export interface Colors {
+  primary: string;
 }
 
 export type Layout = "list" | "lanes";
