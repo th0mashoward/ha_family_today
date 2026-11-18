@@ -11,6 +11,7 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
@@ -20,6 +21,7 @@ from .const import (
     CONF_BIN_ALIASES,
     CONF_BIN_CALENDAR,
     CONF_CALENDARS,
+    CONF_NOTIFY_ENTITY,
     CONF_SCHOOL_BREAK_KEYWORDS,
     CONF_SCHOOL_CALENDAR,
     CONF_SCHOOL_TERM_KEYWORDS,
@@ -97,6 +99,9 @@ class TodayData:
     bin_meta: dict[str, dict[str, str]] = field(default_factory=dict)
     school_source: str = "manual"
     bin_source: str = "rules"
+    # True once "Bins are out" has been acknowledged today, so the reminder and
+    # its binary sensor stay quiet until tomorrow.
+    bins_acknowledged: bool = False
     # {entity_id: health dict}; includes the bin/school calendars as extra roles.
     calendar_status: dict[str, dict[str, Any]] = field(default_factory=dict)
     calendars_ok: int = 0
@@ -117,6 +122,8 @@ class FamilyTodayCoordinator(DataUpdateCoordinator[TodayData]):
         self.entry_id = entry.entry_id
         # Used as the device name, so multiple entries are distinguishable.
         self.entry_title = entry.title or "Family Today"
+        # Default notify entity for the `family_today.announce` action.
+        self.notify_entity: str | None = entry.options.get(CONF_NOTIFY_ENTITY) or None
         # {calendar_entity_id: person_name}
         self.calendars: dict[str, str] = dict(entry.options.get(CONF_CALENDARS, {}))
         self.schedule = Schedule.from_options(entry.options)
@@ -147,6 +154,13 @@ class FamilyTodayCoordinator(DataUpdateCoordinator[TodayData]):
         self._school_items_cache: dict[str, list[tuple[date, date, str]]] = {}
         # Built calendar per person, plus "__global__" for the no-people fallback.
         self._school_cal_cache: dict[str, SchoolCalendar] = {}
+
+        # The date the bins were last acknowledged, persisted so a restart (or
+        # an integration reload) doesn't bring the reminder back the same day.
+        self._bins_ack: date | None = None
+        self._bins_ack_store: Store[dict[str, Any]] = Store(
+            hass, 1, f"{DOMAIN}.{entry.entry_id}_bins_ack"
+        )
 
         # Today's events, so a transient failure keeps the agenda populated.
         self._event_cache = EventCache()
@@ -233,6 +247,7 @@ class FamilyTodayCoordinator(DataUpdateCoordinator[TodayData]):
             bin_meta=bin_meta,
             school_source="calendar" if default_cal is not None else "manual",
             bin_source="calendar" if sched.calendar_days is not None else "rules",
+            bins_acknowledged=self._bins_ack == today,
             calendar_status=self._statuses(),
             calendars_ok=sum(1 for health in person_health if health.ok),
             calendars_total=len(person_health),
@@ -258,6 +273,62 @@ class FamilyTodayCoordinator(DataUpdateCoordinator[TodayData]):
             timeout=CALENDAR_TIMEOUT,
         )
         return list((response or {}).get(entity_id, {}).get("events") or [])
+
+    async def async_get_events(
+        self,
+        start: datetime,
+        end: datetime,
+        *,
+        person: str | None = None,
+        calendar: str | None = None,
+    ) -> list[FamilyEvent]:
+        """Read events in an arbitrary range for actions and templates."""
+        if calendar is not None and calendar not in self.calendars:
+            raise ValueError(f"{calendar} is not one of this instance's calendars")
+
+        targets = {
+            entity_id: owner
+            for entity_id, owner in self.calendars.items()
+            if (calendar is None or entity_id == calendar)
+            and (person is None or owner == person)
+        }
+        groups = await asyncio.gather(
+            *(
+                self._async_range_events(entity_id, owner, start, end)
+                for entity_id, owner in targets.items()
+            )
+        )
+        return [event for group in groups for event in group]
+
+    async def _async_range_events(
+        self, entity_id: str, person: str, start: datetime, end: datetime
+    ) -> list[FamilyEvent]:
+        raws = await self._async_get_events(entity_id, start, end)
+        return [
+            event
+            for raw in raws
+            if (event := self._parse(raw, entity_id, person)) is not None
+        ]
+
+    async def async_load_bins_ack(self) -> None:
+        """Load the persisted bins acknowledgement before the first refresh."""
+        stored = await self._bins_ack_store.async_load()
+        raw = (stored or {}).get("date")
+        if not raw:
+            return
+        parsed = dt_util.parse_date(str(raw))
+        if parsed is not None:
+            self._bins_ack = parsed
+
+    async def async_acknowledge_bins(self) -> None:
+        """Mark today's bins as out, hiding the reminder until tomorrow."""
+        today = dt_util.start_of_local_day().date()
+        self._bins_ack = today
+        await self._bins_ack_store.async_save({"date": today.isoformat()})
+        if self.data is not None:
+            self.data.bins_acknowledged = True
+            # Notify the entities without re-reading every calendar.
+            self.async_set_updated_data(self.data)
 
     async def _async_fetch_person(
         self,

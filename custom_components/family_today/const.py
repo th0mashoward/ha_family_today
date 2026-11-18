@@ -47,6 +47,14 @@ BIN_LOOKAHEAD_DAYS = 60
 # Either field may be omitted; a missing icon is guessed from the name.
 CONF_BIN_APPEARANCE = "bin_appearance"
 
+# Optional notify entity (e.g. notify.mobile_app_phone) used by the
+# `family_today.announce` action when the caller doesn't name one.
+CONF_NOTIFY_ENTITY = "notify_entity"
+
+# Fired when the "Bins are out" notification button is pressed, so automations
+# can react (the binary sensor also clears itself for the rest of the day).
+EVENT_BINS_OUT = f"{DOMAIN}_bins_out"
+
 # Frontend card, served by the integration itself (no manual resource entry).
 # The cache-busting version comes from manifest.json, so it always matches the
 # integration release.

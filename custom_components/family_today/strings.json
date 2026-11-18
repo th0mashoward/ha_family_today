@@ -32,6 +32,7 @@
           "calendars": "Calendars and people",
           "school": "School terms",
           "bins": "Bin collections",
+          "notifications": "Notifications",
           "done": "Save and finish"
         }
       },
@@ -92,6 +93,13 @@
           "bin_appearance": "Bin colours and icons",
           "bins": "Manual bin rules (fallback)",
           "bin_moves": "Holiday moves (manual rules only)"
+        }
+      },
+      "notifications": {
+        "title": "Notifications",
+        "description": "Choose the notify entity used by the `family_today.announce` action when a caller doesn't name one. This is also the default for the shipped morning-briefing and bins-out blueprints. Leave it empty to require a target on every call.",
+        "data": {
+          "notify_entity": "Default notify entity (optional)"
         }
       }
     },

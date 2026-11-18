@@ -94,6 +94,63 @@ school days done), `term_school_days`, `term_school_days_done` and
 - Settings > Devices & services > Family Today > **Download diagnostics** gives
   the options, per-calendar health and today's summary (personal names redacted).
 
+## Actions and notifications
+Family Today exposes its data as actions, so automations stay short and scripts
+can read events for any date range. Every action accepts an optional entity
+target (for example `target: {entity_id: sensor.family_today_today}`) when you
+run more than one Family Today instance; without a target it applies to every
+instance.
+
+- **`family_today.get_events`** returns `{"events": [...]}` for an arbitrary
+  range. `start` defaults to the beginning of today and `end` to 24 hours later.
+  A date-only `end` includes that whole day (`2026-11-18` means up to, but not
+  including, the 19th); a datetime `end` is exclusive. Filter with `person` or
+  `calendar`, and cap the response with `limit` (1–500). Naive datetimes are
+  read as local time. Ranges are capped at 366 days.
+- **`family_today.refresh`** forces a fetch straight away, e.g. after an
+  automation edits a calendar, instead of waiting for the next five-minute poll.
+- **`family_today.announce`** sends a message through `notify.send_message`.
+  Name a `notify_entity` in the call, or set a default under **Configure >
+  Notifications**. It supports `title`, `tag`, companion-app `actions` and extra
+  `data` (image, url, group...).
+- **`family_today.acknowledge_bins`** marks today's bins as out. The bins sensor
+  then stays off for the rest of the day.
+
+```yaml
+- service: family_today.get_events
+  data:
+    start: "2026-11-18"
+    end: "2026-11-25"
+    person: Tom
+  response_variable: agenda
+- service: family_today.announce
+  data:
+    title: This week
+    message: "{{ agenda.events | length }} events for Tom"
+```
+
+### Bins are out button
+The bins reminder blueprint adds a **Bins are out** button to the notification.
+Pressing it fires the `family_today_bins_out` event (`entry` and `bins` data) and
+clears `binary_sensor.family_today_bins_out_tonight` until the next day, so the
+reminder stays quiet. The action name is
+`FAMILY_TODAY_BINS_OUT`; the same acknowledgement is available to scripts as
+`family_today.acknowledge_bins`.
+
+### Blueprints
+Two blueprints cover the obvious automations. Import them from **Settings >
+Automations & scenes > Blueprints > Import blueprint** with these raw URLs:
+
+- Morning briefing — *school today, bins tonight, first event 08:40*:<br>
+  `https://raw.githubusercontent.com/th0mashoward/ha_family_today/master/blueprints/automation/family_today/morning_briefing.yaml`
+- Bins-out reminder — with the **Bins are out** button:<br>
+  `https://raw.githubusercontent.com/th0mashoward/ha_family_today/master/blueprints/automation/family_today/bins_out_reminder.yaml`
+
+Both default their entity inputs to the default Family Today instance and take
+an optional notify entity; leave it empty to use the default configured in the
+integration. The briefing is sent every day and says "no school today" on
+weekends and holidays.
+
 ## Configuration (Configure button)
 - **School calendar (optional):** pick a calendar entity, e.g. an ICS feed of school
   dates. It is treated as a list of **days off**: events whose title contains a
@@ -127,9 +184,12 @@ school days done), `term_school_days`, `term_school_days_done` and
   `food` → apple...). The card uses them for the bin banners; other templates can
   read the `bin_meta` attribute of `sensor.family_today_today`, the next-bin
   sensor and the bins-out binary sensor.
+- **Notifications:** choose the default notify entity for
+  `family_today.announce` and the blueprints. Leave it empty to require an
+  explicit `notify_entity` on each call.
 
 ## Development
-- Python logic tests: `python3 tests/test_schedule.py && python3 tests/test_parsing.py && python3 tests/test_sources.py`
+- Python logic tests: `python3 tests/test_schedule.py && python3 tests/test_parsing.py && python3 tests/test_sources.py && python3 tests/test_actions.py`
 - Card: `cd frontend && npm install && npm run build && npm test`
   (writes `custom_components/family_today/www/family-today-card.js`, which is committed because HACS doesn't build)
 - Brand icon: `python3 assets/make_icon.py`

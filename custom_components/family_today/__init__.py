@@ -17,10 +17,14 @@ from homeassistant.helpers.event import (
 from homeassistant.helpers.start import async_at_started
 from homeassistant.helpers.typing import ConfigType
 
-from .const import CARD_URL
+from .actions import BINS_OUT_ACTION
+from .const import CARD_URL, DOMAIN, EVENT_BINS_OUT
 from .coordinator import FamilyTodayCoordinator
+from .services import async_setup_services
 
 PLATFORMS = ["sensor", "binary_sensor"]
+
+NOTIFICATION_ACTION_EVENT = "mobile_app_notification_action"
 
 type FamilyTodayConfigEntry = ConfigEntry[FamilyTodayCoordinator]
 
@@ -36,13 +40,42 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         (Path(__file__).parent / "manifest.json").read_text(encoding="utf-8")
     )
     add_extra_js_url(hass, f"{CARD_URL}?v={manifest['version']}")
+
+    # The companion app broadcasts the button press. Acknowledgement is shared
+    # by every instance that has a collection tomorrow, so the listener is set
+    # up once rather than once per config entry.
+    async def _bins_out_event(event: Event) -> None:
+        await _handle_bins_out_action(hass, event)
+
+    hass.bus.async_listen(NOTIFICATION_ACTION_EVENT, _bins_out_event)
     return True
 
 
+async def _handle_bins_out_action(hass: HomeAssistant, event: Event) -> None:
+    """Handle the 'Bins are out' button attached to a notification."""
+    if event.data.get("action") != BINS_OUT_ACTION:
+        return
+
+    for coordinator in list(hass.data.get(DOMAIN, {}).values()):
+        data = coordinator.data
+        if data is None or not data.bins_tomorrow:
+            continue
+        bins = list(data.bins_tomorrow)
+        await coordinator.async_acknowledge_bins()
+        hass.bus.async_fire(
+            EVENT_BINS_OUT,
+            {"entry": coordinator.entry_title, "bins": bins},
+        )
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: FamilyTodayConfigEntry) -> bool:
+    async_setup_services(hass)
+
     coordinator = FamilyTodayCoordinator(hass, entry)
+    await coordinator.async_load_bins_ack()
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
     # Roll over to the new day promptly instead of waiting for the next poll.
     async def _midnight(_now: datetime) -> None:
@@ -86,6 +119,7 @@ async def _reload_on_options(hass: HomeAssistant, entry: FamilyTodayConfigEntry)
 async def async_unload_entry(hass: HomeAssistant, entry: FamilyTodayConfigEntry) -> bool:
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
+        hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
         coordinator = getattr(entry, "runtime_data", None)
         if coordinator is not None:
             coordinator.clear_issues()

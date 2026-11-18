@@ -1,0 +1,104 @@
+blueprint:
+  name: Family Today morning briefing
+  description: >-
+    Send a short morning summary from Family Today: whether it is a school day,
+    whether the bins go out tonight, and the first timed event. Uses the
+    family_today.announce action, so the notify entity can come from the
+    integration options or from this blueprint.
+  domain: automation
+  author: Family Today
+  input:
+    briefing_time:
+      name: Time
+      description: When to send the briefing.
+      default: "07:00:00"
+      selector:
+        time:
+    today_sensor:
+      name: Today sensor
+      description: The Family Today "Today" sensor.
+      default: sensor.family_today_today
+      selector:
+        entity:
+          domain: sensor
+          integration: family_today
+          multiple: false
+    school_sensor:
+      name: School day sensor
+      description: The Family Today school-day binary sensor.
+      default: binary_sensor.family_today_school_day
+      selector:
+        entity:
+          domain: binary_sensor
+          integration: family_today
+          multiple: false
+    bins_sensor:
+      name: Bins out tonight sensor
+      description: The Family Today bins-out-tonight binary sensor.
+      default: binary_sensor.family_today_bins_out_tonight
+      selector:
+        entity:
+          domain: binary_sensor
+          integration: family_today
+          multiple: false
+    notify_entity:
+      name: Notify entity
+      description: >-
+        Where to send the briefing. Leave empty to use the default chosen under
+        Family Today > Configure > Notifications.
+      default: ""
+      selector:
+        entity:
+          domain: notify
+          multiple: false
+    title:
+      name: Notification title
+      default: Family Today
+      selector:
+        text:
+
+trigger:
+  - platform: time
+    at: !input briefing_time
+
+variables:
+  today_sensor: !input today_sensor
+  school_sensor: !input school_sensor
+  bins_sensor: !input bins_sensor
+  notify_entity: !input notify_entity
+  message: >-
+    {%- set bits = [] -%}
+    {%- if is_state(school_sensor, 'on') -%}
+    {%- set _ = bits.append('school today') -%}
+    {%- else -%}
+    {%- set _ = bits.append('no school today') -%}
+    {%- endif -%}
+    {%- if is_state(bins_sensor, 'on') -%}
+    {%- set bins = state_attr(bins_sensor, 'bins') or [] -%}
+    {%- set _ = bits.append('bins out tonight' ~ (' (' ~ (bins | join(', ')) ~ ')' if bins else '')) -%}
+    {%- endif -%}
+    {%- set next = state_attr(today_sensor, 'next_event') -%}
+    {%- if next -%}
+    {%- set _ = bits.append('first event ' ~ as_datetime(next.start).strftime('%H:%M') ~ ' ' ~ next.summary) -%}
+    {%- endif -%}
+    {%- set text = (bits | join(', ')) if bits else 'nothing scheduled today' -%}
+    {{ (text[:1] | upper) ~ text[1:] }}
+
+mode: single
+max_exceeded: silent
+
+action:
+  - if:
+      - condition: template
+        value_template: "{{ notify_entity | default('') | length > 0 }}"
+    then:
+      - service: family_today.announce
+        data:
+          message: "{{ message }}"
+          title: !input title
+          notify_entity: "{{ notify_entity }}"
+    else:
+      - service: family_today.announce
+        data:
+          message: "{{ message }}"
+          title: !input title

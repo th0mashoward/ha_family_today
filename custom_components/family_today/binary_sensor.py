@@ -93,7 +93,8 @@ class BinsTomorrowBinarySensor(FamilyTodayEntity, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool:
-        return bool(self.coordinator.data.bins_tomorrow)
+        d = self.coordinator.data
+        return bool(d.bins_tomorrow) and not d.bins_acknowledged
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -101,4 +102,5 @@ class BinsTomorrowBinarySensor(FamilyTodayEntity, BinarySensorEntity):
         return {
             "bins": d.bins_tomorrow,
             "bin_meta": {n: d.bin_meta[n] for n in d.bins_tomorrow if n in d.bin_meta},
+            "acknowledged": d.bins_acknowledged,
         }

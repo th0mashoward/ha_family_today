@@ -28,6 +28,7 @@ from .const import (
     CONF_CALENDARS,
     CONF_INSET_DAYS,
     CONF_NAME,
+    CONF_NOTIFY_ENTITY,
     CONF_SCHOOL_BREAK_KEYWORDS,
     CONF_SCHOOL_CALENDAR,
     CONF_SCHOOL_TERM_KEYWORDS,
@@ -169,7 +170,8 @@ class FamilyTodayOptionsFlow(OptionsFlow):
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         return self.async_show_menu(
-            step_id="init", menu_options=["calendars", "school", "bins", "done"]
+            step_id="init",
+            menu_options=["calendars", "school", "bins", "notifications", "done"],
         )
 
     async def async_step_done(self, user_input: dict[str, Any] | None = None):
@@ -458,3 +460,27 @@ class FamilyTodayOptionsFlow(OptionsFlow):
             errors=errors,
             description_placeholders=placeholders,
         )
+
+    # ---- notifications --------------------------------------------------
+    async def async_step_notifications(
+        self, user_input: dict[str, Any] | None = None
+    ):
+        """Default notify entity for `family_today.announce` and the blueprints."""
+        if user_input is not None:
+            if entity := user_input.get(CONF_NOTIFY_ENTITY):
+                self.opts[CONF_NOTIFY_ENTITY] = entity
+            else:
+                self.opts.pop(CONF_NOTIFY_ENTITY, None)
+            return await self.async_step_init()
+
+        schema = self.add_suggested_values_to_schema(
+            vol.Schema(
+                {
+                    vol.Optional(CONF_NOTIFY_ENTITY): EntitySelector(
+                        EntitySelectorConfig(domain="notify")
+                    )
+                }
+            ),
+            {CONF_NOTIFY_ENTITY: self.opts.get(CONF_NOTIFY_ENTITY)},
+        )
+        return self.async_show_form(step_id="notifications", data_schema=schema)

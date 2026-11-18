@@ -33,6 +33,7 @@ jobs:
       - run: python3 tests/test_schedule.py
       - run: python3 tests/test_parsing.py
       - run: python3 tests/test_sources.py
+      - run: python3 tests/test_actions.py
       - uses: actions/setup-node@v4
         with:
           node-version: "20"

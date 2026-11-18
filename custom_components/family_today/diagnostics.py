@@ -10,7 +10,14 @@ from . import FamilyTodayConfigEntry
 
 # Person names, aliases and term labels are personal; diagnostics often end up
 # in public issues, so redact the free-text options.
-TO_REDACT = {"calendars", "bin_aliases", "terms", "person", "schools"}
+TO_REDACT = {
+    "calendars",
+    "bin_aliases",
+    "terms",
+    "person",
+    "schools",
+    "notify_entity",
+}
 
 
 async def async_get_config_entry_diagnostics(
@@ -60,6 +67,7 @@ async def async_get_config_entry_diagnostics(
             "school_override_count": len(data.school_overrides) if data else 0,
             "bins_today": data.bins_today if data else [],
             "bins_tomorrow": data.bins_tomorrow if data else [],
+            "bins_acknowledged": data.bins_acknowledged if data else None,
             "next_bin_date": (
                 data.next_bin_date.isoformat() if data and data.next_bin_date else None
             ),

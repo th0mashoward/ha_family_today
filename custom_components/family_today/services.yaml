@@ -1,0 +1,103 @@
+get_events:
+  name: Get events
+  description: Read merged events for any date range, e.g. to build a custom briefing or calendar view.
+  target:
+    entity:
+      integration: family_today
+  fields:
+    start:
+      name: Start
+      description: ISO date or datetime. Defaults to the beginning of today, and a date is read as local midnight.
+      example: "2026-11-18T15:00:00"
+      selector:
+        text:
+    end:
+      name: End
+      description: ISO date or datetime. A date includes that whole day; a datetime is exclusive. Defaults to 24 hours after the start.
+      example: "2026-11-25"
+      selector:
+        text:
+    person:
+      name: Person
+      description: Only return events owned by this person (the name shown on the calendars).
+      example: Tom
+      selector:
+        text:
+    calendar:
+      name: Calendar
+      description: Only return events from this configured calendar entity.
+      selector:
+        entity:
+          domain: calendar
+          multiple: false
+    limit:
+      name: Limit
+      description: Maximum number of events to return, after sorting all-day events first and then by start time.
+      default: 500
+      selector:
+        number:
+          min: 1
+          max: 500
+          mode: box
+
+refresh:
+  name: Refresh
+  description: Force a refresh after editing a calendar, instead of waiting for the next poll.
+  target:
+    entity:
+      integration: family_today
+
+announce:
+  name: Announce
+  description: Send a notification through a notify entity, with optional companion-app action buttons.
+  target:
+    entity:
+      integration: family_today
+  fields:
+    message:
+      name: Message
+      description: Body of the notification.
+      required: true
+      example: School today, bins tonight.
+      selector:
+        text:
+          multiline: true
+    title:
+      name: Title
+      description: Optional notification title.
+      example: Family Today
+      selector:
+        text:
+    notify_entity:
+      name: Notify entity
+      description: Where to send the message. Defaults to the entity chosen under Configure > Notifications.
+      selector:
+        entity:
+          domain: notify
+          multiple: true
+    tag:
+      name: Tag
+      description: Notification tag, so a later message can replace this one on the device.
+      example: family_today_bins
+      selector:
+        text:
+    actions:
+      name: Actions
+      description: Companion-app buttons. Each item needs an `action` and may set `title` and `uri`. The mobile app fires the action back as a `mobile_app_notification_action` event.
+      example: |
+        - action: FAMILY_TODAY_BINS_OUT
+          title: Bins are out
+      selector:
+        object:
+    data:
+      name: Extra data
+      description: Additional companion-app payload keys, such as `image`, `url` or `group`.
+      selector:
+        object:
+
+acknowledge_bins:
+  name: Acknowledge bins
+  description: Mark today's bins as out, clearing the bins-out sensor until tomorrow. The notification button calls this automatically, but you can also call it from a script.
+  target:
+    entity:
+      integration: family_today

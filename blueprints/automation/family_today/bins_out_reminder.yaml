@@ -1,0 +1,93 @@
+blueprint:
+  name: Family Today bins-out reminder
+  description: >-
+    Remind the household to put the bins out the night before a collection,
+    with a "Bins are out" button. Pressing the button acknowledges the reminder:
+    the Family Today bins-out sensor turns off for the rest of the day and the
+    family_today_bins_out event fires.
+  domain: automation
+  author: Family Today
+  input:
+    reminder_time:
+      name: Time
+      description: When to send the reminder.
+      default: "19:00:00"
+      selector:
+        time:
+    bins_sensor:
+      name: Bins out tonight sensor
+      description: The Family Today bins-out-tonight binary sensor.
+      default: binary_sensor.family_today_bins_out_tonight
+      selector:
+        entity:
+          domain: binary_sensor
+          integration: family_today
+          multiple: false
+    notify_entity:
+      name: Notify entity
+      description: >-
+        Where to send the reminder. Leave empty to use the default chosen under
+        Family Today > Configure > Notifications.
+      default: ""
+      selector:
+        entity:
+          domain: notify
+          multiple: false
+    title:
+      name: Notification title
+      default: Bins out tonight
+      selector:
+        text:
+    tag:
+      name: Notification tag
+      description: A later reminder replaces the previous one on the device.
+      default: family_today_bins
+      selector:
+        text:
+
+trigger:
+  - platform: time
+    at: !input reminder_time
+
+condition:
+  - condition: state
+    entity_id: !input bins_sensor
+    state: "on"
+
+variables:
+  bins_sensor: !input bins_sensor
+  notify_entity: !input notify_entity
+  message: >-
+    {%- set bins = state_attr(bins_sensor, 'bins') or [] -%}
+    {%- if bins -%}
+    Put the {{ bins | join(' and ') }} out tonight for tomorrow's collection.
+    {%- else -%}
+    The bins need to go out tonight.
+    {%- endif -%}
+
+mode: single
+max_exceeded: silent
+
+action:
+  - if:
+      - condition: template
+        value_template: "{{ notify_entity | default('') | length > 0 }}"
+    then:
+      - service: family_today.announce
+        data:
+          message: "{{ message }}"
+          title: !input title
+          tag: !input tag
+          notify_entity: "{{ notify_entity }}"
+          actions:
+            - action: FAMILY_TODAY_BINS_OUT
+              title: Bins are out
+    else:
+      - service: family_today.announce
+        data:
+          message: "{{ message }}"
+          title: !input title
+          tag: !input tag
+          actions:
+            - action: FAMILY_TODAY_BINS_OUT
+              title: Bins are out
