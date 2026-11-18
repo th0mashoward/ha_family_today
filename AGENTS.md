@@ -173,8 +173,11 @@ The card URL cache-buster is read from the manifest automatically.
 - Check `git status` and `git log` before staging; user commits may interleave.
 - Do not push, tag or open releases unless explicitly asked.
 - Do not discard unrelated working-tree changes.
-- Commit messages are short and imperative, for example
-  `Add actions, notifications and automation blueprints`.
+- Prefix commit messages by change type:
+  - `feat: ...` for a new feature.
+  - `chore: ...` for a bug fix, documentation change or other minor update.
+- Keep the subject short and imperative after the prefix, for example
+  `feat: add actions, notifications and automation blueprints`.
 
 ## Commands
 
