@@ -121,5 +121,43 @@
       "title": "Calendar unavailable: {entity_id}",
       "description": "Family Today has not been able to read `{entity_id}` for several refreshes. Last error: {error}. The card keeps showing the last saved events for today where possible."
     }
+  },
+  "card": {
+    "family_today": {
+      "sensor_not_found": "Family Today sensor not found",
+      "school_day": "School day",
+      "no_school": "No school",
+      "show_details": "Show details",
+      "bin_day_today": "Bin day today",
+      "bins_out_tonight": "Bins out tonight",
+      "tomorrow": "tomorrow",
+      "next_bins": "Next bins",
+      "details_for": "Details for",
+      "next": "Next",
+      "nothing_scheduled_today": "Nothing scheduled today",
+      "nothing_on": "Nothing on",
+      "calendar_unavailable": "Calendar unavailable",
+      "showing_saved_events": "Showing saved events",
+      "today_events_from": "Today's events from",
+      "from_earlier_refresh": "are from an earlier refresh",
+      "term_ends": "Term ends",
+      "next_break": "Next break",
+      "back_to_school": "Back to school",
+      "next_term": "Next term",
+      "no_term_dates_configured": "No term dates configured.",
+      "close": "Close"
+    },
+    "family_today_school": {
+      "sensor_not_found": "Family Today sensor not found",
+      "school": "School",
+      "no_school_data_yet": "No school data yet.",
+      "school_day": "School day",
+      "no_school": "No school",
+      "back_to_school": "Back to school",
+      "next_term": "Next term",
+      "no_school_breaks_in_calendar_yet": "No school breaks in the calendar yet.",
+      "no_term_dates_configured": "No term dates configured.",
+      "upcoming_breaks": "Upcoming breaks"
+    }
   }
 }

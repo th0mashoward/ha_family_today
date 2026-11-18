@@ -1,4 +1,3 @@
-"""Sensors for Family Today."""
 from __future__ import annotations
 
 from datetime import date
@@ -30,9 +29,10 @@ async def async_setup_entry(
 class FamilyTodaySensor(FamilyTodayEntity, SensorEntity):
     """State = number of events today; attributes hold everything the card needs."""
 
-    _attr_name = "Today"
+    _attr_name = None
     _attr_icon = "mdi:calendar-today"
     _attr_native_unit_of_measurement = "events"
+    translation_key = "today"
 
     @property
     def native_value(self) -> int:
@@ -68,9 +68,10 @@ class FamilyTodaySensor(FamilyTodayEntity, SensorEntity):
 class NextBinSensor(FamilyTodayEntity, SensorEntity):
     """Date of the next bin collection; attributes list which bins."""
 
-    _attr_name = "Next bin collection"
+    _attr_name = None
     _attr_icon = "mdi:delete-empty"
     _attr_device_class = SensorDeviceClass.DATE
+    translation_key = "next_bin_collection"
 
     @property
     def native_value(self) -> date | None:
