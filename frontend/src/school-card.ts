@@ -50,21 +50,21 @@ export class FamilyTodaySchoolCard extends LitElement {
     if (!e) {
       return html`<ha-card>
         <div class="missing">
-          ${this.hass.translate("ui.card.family_today_school.sensor_not_found")} (<code>${t}</code>).
+          ${this.hass.translate("ui.card.family_today_school.sensor_not_found") ?? "Family Today sensor not found"} (<code>${t}</code>).
         </div>
       </ha-card>`;
     }
     const a = e.attributes;
     const entries = this._entries(a);
     const singleEntry = entries.length === 1;
-    const title = this._config.title ?? this.hass.translate("ui.card.family_today_school.school");
+    const title = this._config.title ?? this.hass.translate("ui.card.family_today_school.school") ?? "School";
 
     return html`<ha-card>
       <div class="header">
         <div class="title">${title}</div>
         ${singleEntry ? this._chip(entries[0].status) : nothing}
       </div>
-      ${entries.length ? entries.map((entry) => this._section(entry, singleEntry)) : html`<div class="empty">${this.hass.translate("ui.card.family_today_school.no_school_data_yet")}</div>`}
+      ${entries.length ? entries.map((entry) => this._section(entry, !singleEntry)) : html`<div class="empty">${this.hass.translate("ui.card.family_today_school.no_school_data_yet") ?? "No school data yet."}</div>`}
     </ha-card>`;
   }
 
@@ -102,11 +102,11 @@ export class FamilyTodaySchoolCard extends LitElement {
     };
   }
 
-  private _section(t: { person: string | null; status: SchoolStatus }, single: boolean): TemplateResult {
+  private _section(t: { person: string | null; status: SchoolStatus }, showHead: boolean): TemplateResult {
     const { person, status } = t;
     const color = person ? this._color(person) : "var(--primary-color)";
     return html`<section class="section">
-      ${single ? html`<div class="child-head" style=${styleMap({ "--person-color": color })}>
+      ${showHead ? html`<div class="child-head" style=${styleMap({ "--person-color": color })}>
             <span class="dot"></span>
             <span class="child-name">${person}</span>
             ${this._chip(status)}
@@ -120,7 +120,7 @@ export class FamilyTodaySchoolCard extends LitElement {
   }
 
   private _chip(t: SchoolStatus): TemplateResult {
-    const label = t.is_school_day ? this.hass.translate("ui.card.family_today_school.school_day") : t.reason || this.hass.translate("ui.card.family_today_school.no_school");
+    const label = t.is_school_day ? this.hass.translate("ui.card.family_today_school.school_day") ?? "School day" : t.reason || (this.hass.translate("ui.card.family_today_school.no_school") ?? "No school");
     return html`<span class=${classMap({ chip: true, school: t.is_school_day })}>
       <ha-icon
         icon=${t.is_school_day ? "mdi:school" : "mdi:school-outline"}
@@ -132,7 +132,9 @@ export class FamilyTodaySchoolCard extends LitElement {
   private _term(t: SchoolStatus): TemplateResult | typeof nothing {
     if (!t.term) return nothing;
     const progress = t.term_progress ?? null;
-    const ends = t.term_end ? `${formatDateShort(this.hass, t.term_end)}` : "";
+    const ends = t.term_end
+      ? `${this.hass.translate("ui.card.family_today.term_ends") ?? "Term ends"} ${formatDateShort(this.hass, t.term_end)}`
+      : "";
     return html`<div class="term">
       <div class="term-head">
         <span class="term-name">${t.term}</span>
@@ -162,7 +164,7 @@ export class FamilyTodaySchoolCard extends LitElement {
     if (!t.is_school_day) {
       if (t.back_to_school) {
         const nextTermStarts = !!t.next_term && !!t.next_term_start && t.next_term_start === t.back_to_school;
-        const label = nextTermStarts ? `${t.next_term} starts` : this.hass.translate("ui.card.family_today_school.back_to_school");
+        const label = nextTermStarts ? `${t.next_term} starts` : this.hass.translate("ui.card.family_today_school.back_to_school") ?? "Back to school";
         rows.push(
           this._fact("mdi:school", label, `${formatDateShort(this.hass, t.back_to_school)} · ${inDays(t.days_until_school)}`),
         );
@@ -170,7 +172,7 @@ export class FamilyTodaySchoolCard extends LitElement {
         rows.push(
           this._fact(
             "mdi:calendar-start",
-            this.hass.translate("ui.card.family_today_school.next_term"),
+            this.hass.translate("ui.card.family_today_school.next_term") ?? "Next term",
             `${t.next_term} · ${formatDateShort(this.hass, t.next_term_start)} · ${inDays(t.days_until_next_term)}`,
           ),
         );
@@ -192,11 +194,11 @@ export class FamilyTodaySchoolCard extends LitElement {
     const breaks = (t.upcoming_breaks ?? []).slice(0, max);
     if (!breaks.length) {
       return html`<div class="empty-breaks">
-        ${t.term || t.next_term ? this.hass.translate("ui.card.family_today_school.no_school_breaks_in_calendar_yet") : this.hass.translate("ui.card.family_today_school.no_term_dates_configured")}
+        ${t.term || t.next_term ? this.hass.translate("ui.card.family_today_school.no_school_breaks_in_calendar_yet") ?? "No school breaks in the calendar yet." : this.hass.translate("ui.card.family_today_school.no_term_dates_configured") ?? "No term dates configured."}
       </div>`;
     }
     return html`<div class="breaks">
-      <div class="breaks-title">${this.hass.translate("ui.card.family_today_school.upcoming_breaks")}</div>
+      <div class="breaks-title">${this.hass.translate("ui.card.family_today_school.upcoming_breaks") ?? "Upcoming breaks"}</div>
       ${breaks.map((brk) => this._breakRow(brk))}
     </div>`;
   }

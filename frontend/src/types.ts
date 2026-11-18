@@ -100,6 +100,7 @@ export interface Hass {
   language?: string;
   hass?: boolean;
   locale?: HassLocale;
+  /** Returns a translated string for the key. In runtime HA this is always defined and returns a non-empty string. */
   translate(key: string, substitutions?: Record<string, any>): string;
   themes?: Theme;
 }
