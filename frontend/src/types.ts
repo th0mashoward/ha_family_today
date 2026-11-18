@@ -1,3 +1,9 @@
+declare global {
+  interface Window {
+    customCards?: Array<Record<string, unknown>>;
+  }
+}
+
 export interface FamilyEvent {
   calendar: string;
   person: string;
@@ -87,7 +93,7 @@ export interface HassEntity {
 export interface Hass {
   states: Record<string, HassEntity>;
   language: string;
-  locale?: { language?: string; time_format?: string };
+  locale?: (key: string) => string;
 }
 
 export type Layout = "list" | "lanes";
