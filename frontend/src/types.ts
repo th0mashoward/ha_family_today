@@ -92,21 +92,23 @@ export interface HassEntity {
 
 export interface HassLocale {
   language: string;
-  time_format: "12" | "24";
+  time_format?: "12" | "24";
+  number_format?: string;
+  date_format?: string;
 }
 
 export interface Hass {
   states: Record<string, HassEntity>;
   language?: string;
-  hass?: boolean;
   locale?: HassLocale;
-  /** Returns a translated string for the key. In runtime HA this is always defined and returns a non-empty string. */
-  translate(key: string, substitutions?: Record<string, any>): string;
+  /**
+   * Home Assistant's translation function. There is deliberately no
+   * `translate` method on `hass`; the frontend calls this `localize` and
+   * returns an empty string for unknown keys. Optional so a host without
+   * localisation cannot break card rendering.
+   */
+  localize?: (key: string, ...args: any[]) => string;
   themes?: Theme;
-}
-
-export interface Locale extends HassLocale {
-  (key: string): string;
 }
 
 export interface Theme {

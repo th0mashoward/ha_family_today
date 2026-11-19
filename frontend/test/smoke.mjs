@@ -46,8 +46,9 @@ const attrs = (over = {}) => ({
 const mkHass = (a, extra = {}) => ({
   language: "en-GB",
   locale: { language: "en-GB", time_format: "24" },
-  // Mock translate to return the key's expected value for English
-  translate: (key) => {
+  // Real Home Assistant exposes `hass.localize`, not `hass.translate`, and
+  // returns "" for keys the frontend does not know about.
+  localize: (key) => {
     const dict = {
       "ui.card.family_today.sensor_not_found": "Family Today sensor not found",
       "ui.card.family_today.school_day": "School day",
@@ -84,7 +85,7 @@ const mkHass = (a, extra = {}) => ({
       "ui.card.family_today_school.next_term": "Next term",
       "ui.card.family_today_school.upcoming_breaks": "Upcoming breaks",
     };
-    return dict[key] ?? key;
+    return dict[key] ?? "";
   },
   states: { "sensor.family_today_today": { state: String(a.agenda.length), attributes: a }, ...extra },
 });
@@ -364,7 +365,7 @@ assert.throws(() => {
 assert.ok(window.customElements.get("family-today-school-card-editor"));
 assert.ok(window.customCards.some((c) => c.type === "family-today-school-card"));
 
-schoolCard = await renderSchool({ entity: "sensor.nope" }, { language: "en", states: {}, translate: (key) => key.split(".").pop().replace(/_/g, " ") });
+schoolCard = await renderSchool({ entity: "sensor.nope" }, { language: "en", states: {} });
 assert.match(text(schoolCard), /not found/);
 
 // --- hide_past
@@ -452,8 +453,18 @@ assert.match(t, /Bin day today/);
 assert.match(t, /Nothing scheduled today/);
 
 // --- missing entity message
-el = await render({ entity: "sensor.nope" }, { language: "en", states: {}, translate: (key) => key.split(".").pop().replace(/_/g, " ") });
+el = await render({ entity: "sensor.nope" }, { language: "en", states: {} });
 assert.match(text(el), /not found/);
+
+// --- localisation goes through hass.localize, with English fallbacks
+const localized = mkHass(attrs());
+localized.localize = (key) =>
+  key === "ui.card.family_today.school_day" ? "Schultag" : "";
+el = await render({ entity: "sensor.family_today_today" }, localized);
+t = text(el);
+assert.match(t, /Schultag/, "translated strings win");
+assert.match(t, /Bins out tonight/, "unknown keys fall back to English");
+assert.equal(typeof localized.translate, "undefined", "hass has no translate method");
 
 // --- bad config rejected; editor + registry present
 const bad = window.document.createElement("family-today-card");

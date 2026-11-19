@@ -55,6 +55,21 @@ function locale(hass: Hass): string {
   return hass.locale?.language ?? hass.language ?? "en";
 }
 
+/**
+ * Localised card text with an English fallback.
+ *
+ * Home Assistant exposes `hass.localize`; there is no `hass.translate`. A key
+ * the frontend does not know about (custom-card strings, for example) resolves
+ * to an empty string, so always fall back to plain English. The function is
+ * also tolerant of a mock `hass` without localisation at all.
+ */
+export function translate(hass: Hass | undefined, key: string, fallback: string): string {
+  const localize = hass?.localize;
+  if (typeof localize !== "function") return fallback;
+  const value = localize(key);
+  return typeof value === "string" && value.trim() ? value : fallback;
+}
+
 export function formatTime(hass: Hass, iso: string): string {
   const tf = hass.locale?.time_format ?? "24";
   const hour12 = tf === "12" ? true : false;
