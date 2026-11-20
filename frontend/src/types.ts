@@ -143,6 +143,7 @@ export interface SchoolCardConfig {
   type: string;
   entity?: string;
   title?: string;
+  show_calendar?: boolean;
   max_breaks?: number;
   colors?: Record<string, string>;
 }

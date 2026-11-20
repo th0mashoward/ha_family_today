@@ -4,6 +4,7 @@ import type { Hass, SchoolCardConfig } from "./types";
 const SCHEMA = [
   { name: "entity", selector: { entity: { domain: "sensor" } } },
   { name: "title", selector: { text: {} } },
+  { name: "show_calendar", selector: { boolean: {} } },
   {
     name: "max_breaks",
     selector: { number: { min: 1, max: 6, mode: "box" } },
@@ -13,6 +14,7 @@ const SCHEMA = [
 const LABELS: Record<string, string> = {
   entity: "Family Today sensor",
   title: "Title (default: School)",
+  show_calendar: "Show link to the full school calendar",
   max_breaks: "Upcoming breaks to show",
 };
 

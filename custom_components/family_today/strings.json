@@ -121,5 +121,41 @@
       "title": "Calendar unavailable: {entity_id}",
       "description": "Family Today has not been able to read `{entity_id}` for several refreshes. Last error: {error}. The card keeps showing the last saved events for today where possible."
     }
+  },
+  "card": {
+    "family_today_school": {
+      "school": "School",
+      "no_school_data_yet": "No school data yet.",
+      "back_to_school": "Back to school",
+      "next_term": "Next term",
+      "upcoming_breaks": "Upcoming breaks",
+      "no_school_breaks_in_calendar_yet": "No school breaks in the calendar yet.",
+      "no_term_dates_configured": "No term dates configured.",
+      "term_ends": "Term ends"
+    }
+  },
+  "card": {
+    "family_today": {
+      "sensor_not_found": "Family Today sensor not found",
+      "show_details": "Show details",
+      "school_day": "School day",
+      "no_school": "No school",
+      "term_ends": "Term ends",
+      "next_break": "Next break",
+      "back_to_school": "Back to school",
+      "next_term": "Next term",
+      "showing_saved_events": "Showing saved events",
+      "calendar_unavailable": "Calendar unavailable",
+      "today_events_from": "Today's events from",
+      "from_earlier_refresh": "are from an earlier refresh",
+      "nothing_scheduled_today": "Nothing scheduled today",
+      "next": "Next",
+      "details_for": "Details for",
+      "close": "Close",
+      "bin_day_today": "Bin day today",
+      "bins_out_tonight": "Bins out tonight",
+      "tomorrow": "tomorrow",
+      "next_bins": "Next bins"
+    }
   }
 }

@@ -59,6 +59,25 @@ export class FamilyTodaySchoolCard extends LitElement {
     return document.createElement("family-today-school-card-editor");
   }
 
+  /** The configured school calendar entity, if any (role "school"). */
+  private _schoolCalendar(a: FamilyTodayAttributes): string | null {
+    for (const status of Object.values(a.calendar_status ?? {})) {
+      if (status.role === "school") return status.entity_id;
+    }
+    return null;
+  }
+
+  /** Open an entity's built-in detail/calendar view. */
+  private _openCalendar(entityId: string): void {
+    this.dispatchEvent(
+      new CustomEvent("hass-more-info", {
+        detail: { entityId },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
   protected render(): TemplateResult {
     if (!this.hass || !this._config) return html``;
     const entity = this._config.entity ?? DEFAULT_ENTITY;
@@ -74,12 +93,24 @@ export class FamilyTodaySchoolCard extends LitElement {
     const a = found.attributes as FamilyTodayAttributes;
     const entries = this._entries(a);
     const single = entries.length === 1;
+    const schoolCalendar = this._schoolCalendar(a);
     const title =
       this._config.title ?? translate(this.hass, "ui.card.family_today_school.school", "School");
+
     return html`<ha-card>
       <div class="header">
         <div class="title">${title}</div>
-        ${single ? this._chip(entries[0].status) : nothing}
+        ${single
+          ? html`<div class="header-actions">
+              ${this._chip(entries[0].status)}
+              ${this._config.show_calendar && schoolCalendar
+                ? html`<button class="calendar-btn" @click=${() => this._openCalendar(schoolCalendar)}>
+                    <ha-icon icon="mdi:calendar-outline"></ha-icon>
+                    View full calendar
+                  </button>`
+                : nothing}
+            </div>`
+          : nothing}
       </div>
       ${entries.length
         ? entries.map((entry) => this._section(entry, !single))
@@ -282,11 +313,16 @@ export class FamilyTodaySchoolCard extends LitElement {
   static styles = css`
     :host { display: block; }
     ha-card { padding: 16px; }
-    .header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .header { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
     .title { font-size: 1.3em; font-weight: 500; color: var(--primary-text-color); }
     .chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px;
       background: var(--secondary-background-color); color: var(--secondary-text-color); font-size: 0.85em;
       white-space: nowrap; }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .calendar-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 20px;
+      border: 1px solid var(--divider-color, rgba(0, 0, 0, 0.12)); background: transparent;
+      color: var(--primary-text-color); font-size: 0.9em; cursor: pointer; }
+    .calendar-btn ha-icon { --mdc-icon-size: 18px; }
     .chip ha-icon { --mdc-icon-size: 16px; }
     .chip.school { background: rgba(var(--rgb-primary-color, 3, 169, 244), 0.15); color: var(--primary-color); }
     .section { margin-top: 12px; }
