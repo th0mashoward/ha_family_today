@@ -304,6 +304,10 @@ test scripts. Keep testable logic out of those modules.
 - Source only in `frontend/src/`; update `types.ts` with any payload changes.
 - Respect Home Assistant's `hass` object and localisation helpers in
   `helpers.ts`.
+- Card UI strings live in the integration's `common` section, loaded at runtime
+  with `hass.loadBackendTranslation("common", "family_today")` and resolved as
+  `component.family_today.common.<key>`. Do **not** add a top-level `card`
+  section: hassfest rejects it and the frontend will not load it.
 - Add smoke coverage in `frontend/test/smoke.mjs`.
 - Run `npm run typecheck && npm run build && npm test`.
 - Commit both the source and the rebuilt bundle.

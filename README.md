@@ -192,6 +192,11 @@ weekends and holidays.
 - Python logic tests: `python3 tests/test_schedule.py && python3 tests/test_parsing.py && python3 tests/test_sources.py && python3 tests/test_actions.py`
 - Card: `cd frontend && npm install && npm run build && npm test`
   (writes `custom_components/family_today/www/family-today-card.js`, which is committed because HACS doesn't build)
+- Card text: both cards load the integration's `common` strings at runtime with
+  `hass.loadBackendTranslation("common", "family_today")`. Add new UI text to the
+  `common` section of `strings.json` and `translations/en.json` using a
+  `family_today_` or `family_today_school_` key prefix, then reference it through
+  `translate()` in `frontend/src/`. English fallbacks live in the card source.
 - Brand icon: `python3 assets/make_icon.py`
   (writes `custom_components/family_today/brand/icon.png` and `icon@2x.png`; HA 2026.3+ picks these up automatically)
 - Release: set `version` in `custom_components/family_today/manifest.json` and tag

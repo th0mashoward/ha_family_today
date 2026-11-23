@@ -116,48 +116,44 @@
       "no_people": "Add at least one calendar owner before configuring per-child school settings."
     }
   },
+  "common": {
+    "family_today_sensor_not_found": "Family Today sensor not found",
+    "family_today_show_details": "Show details",
+    "family_today_school_day": "School day",
+    "family_today_no_school": "No school",
+    "family_today_term_ends": "Term ends",
+    "family_today_next_break": "Next break",
+    "family_today_back_to_school": "Back to school",
+    "family_today_next_term": "Next term",
+    "family_today_showing_saved_events": "Showing saved events",
+    "family_today_calendar_unavailable": "Calendar unavailable",
+    "family_today_today_events_from": "Today's events from",
+    "family_today_from_earlier_refresh": "are from an earlier refresh",
+    "family_today_nothing_scheduled_today": "Nothing scheduled today",
+    "family_today_next": "Next",
+    "family_today_details_for": "Details for",
+    "family_today_close": "Close",
+    "family_today_bin_day_today": "Bin day today",
+    "family_today_bins_out_tonight": "Bins out tonight",
+    "family_today_tomorrow": "tomorrow",
+    "family_today_next_bins": "Next bins",
+    "family_today_nothing_on": "Nothing on",
+    "family_today_school_sensor_not_found": "Family Today sensor not found",
+    "family_today_school_school": "School",
+    "family_today_school_no_school_data_yet": "No school data yet.",
+    "family_today_school_school_day": "School day",
+    "family_today_school_no_school": "No school",
+    "family_today_school_back_to_school": "Back to school",
+    "family_today_school_next_term": "Next term",
+    "family_today_school_no_school_breaks_in_calendar_yet": "No school breaks in the calendar yet.",
+    "family_today_school_no_term_dates_configured": "No term dates configured.",
+    "family_today_school_upcoming_breaks": "Upcoming breaks",
+    "family_today_school_view_calendar": "View full calendar"
+  },
   "issues": {
     "calendar_unavailable": {
       "title": "Calendar unavailable: {entity_id}",
       "description": "Family Today has not been able to read `{entity_id}` for several refreshes. Last error: {error}. The card keeps showing the last saved events for today where possible."
-    }
-  },
-  "card": {
-    "family_today_school": {
-      "school": "School",
-      "no_school_data_yet": "No school data yet.",
-      "back_to_school": "Back to school",
-      "next_term": "Next term",
-      "upcoming_breaks": "Upcoming breaks",
-      "no_school_breaks_in_calendar_yet": "No school breaks in the calendar yet.",
-      "no_term_dates_configured": "No term dates configured.",
-      "term_ends": "Term ends"
-    },
-    "family_today": {
-      "sensor_not_found": "Family Today sensor not found",
-      "show_details": "Show details",
-      "school_day": "School day",
-      "no_school": "No school",
-      "term_ends": "Term ends",
-      "next_break": "Next break",
-      "back_to_school": "Back to school",
-      "next_term": "Next term",
-      "showing_saved_events": "Showing saved events",
-      "calendar_unavailable": "Calendar unavailable",
-      "today_events_from": "Today's events from",
-      "from_earlier_refresh": "are from an earlier refresh",
-      "nothing_scheduled_today": "Nothing scheduled today",
-      "next": "Next",
-      "details_for": "Details for",
-      "close": "Close",
-      "bin_day_today": "Bin day today",
-      "bins_out_tonight": "Bins out tonight",
-      "tomorrow": "tomorrow",
-      "next_bins": "Next bins"
-    },
-    "view_calendar": {
-      "label": "View full calendar",
-      "description": "Open the school calendar to see the complete schedule."
     }
   }
 }

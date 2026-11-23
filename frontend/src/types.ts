@@ -108,6 +108,14 @@ export interface Hass {
    * localisation cannot break card rendering.
    */
   localize?: (key: string, ...args: any[]) => string;
+  /**
+   * Load backend translations for a category, e.g. the integration's
+   * `common` section. Resolves with a localize function that knows them.
+   */
+  loadBackendTranslation?: (
+    category: string,
+    integrations?: string | string[],
+  ) => Promise<(key: string, ...args: any[]) => string>;
   themes?: Theme;
 }
 

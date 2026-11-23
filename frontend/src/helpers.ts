@@ -55,18 +55,73 @@ function locale(hass: Hass): string {
   return hass.locale?.language ?? hass.language ?? "en";
 }
 
+const TRANSLATION_DOMAIN = "family_today";
+/**
+ * Card strings live in the integration's `common` section: it is the only
+ * free-form top-level section hassfest accepts, and the frontend can load it
+ * on demand. Keys resolve as `component.family_today.common.<key>`.
+ */
+const TRANSLATION_CATEGORY = "common";
+const TRANSLATION_PREFIX = `component.${TRANSLATION_DOMAIN}.${TRANSLATION_CATEGORY}.`;
+
+type LocalizeFunc = (key: string, ...args: any[]) => string;
+
+// Both cards use the same strings, so load and cache them once per language.
+const loadedTranslations = new Map<string, LocalizeFunc | undefined>();
+const loadingTranslations = new Map<string, Promise<void>>();
+
+/**
+ * Load the integration's card strings into `hass.localize`.
+ *
+ * Returns a promise only when a load was started; card elements re-render when
+ * it resolves. Safe to call from every render.
+ */
+export function loadCardTranslations(
+  hass: Hass | undefined,
+): Promise<void> | undefined {
+  if (!hass) return undefined;
+  const language = locale(hass);
+  if (loadedTranslations.has(language)) return undefined;
+  const inflight = loadingTranslations.get(language);
+  if (inflight) return inflight;
+
+  const load = hass.loadBackendTranslation;
+  if (typeof load !== "function") return undefined;
+
+  const promise = load
+    .call(hass, TRANSLATION_CATEGORY, TRANSLATION_DOMAIN)
+    .then((localize) => {
+      loadedTranslations.set(
+        language,
+        typeof localize === "function" ? localize : undefined,
+      );
+    })
+    .catch(() => {
+      // Keep the English fallbacks; retrying on every render would be noisy.
+      loadedTranslations.set(language, undefined);
+    })
+    .finally(() => {
+      loadingTranslations.delete(language);
+    });
+  loadingTranslations.set(language, promise);
+  return promise;
+}
+
 /**
  * Localised card text with an English fallback.
  *
- * Home Assistant exposes `hass.localize`; there is no `hass.translate`. A key
- * the frontend does not know about (custom-card strings, for example) resolves
- * to an empty string, so always fall back to plain English. The function is
- * also tolerant of a mock `hass` without localisation at all.
+ * Home Assistant exposes `hass.localize`; there is no `hass.translate`. Custom
+ * integration strings are not loaded into `hass.localize` automatically, so
+ * cards call {@link loadCardTranslations} and re-render once it resolves. A key
+ * the frontend does not know about resolves to an empty string, so always fall
+ * back to plain English. The function is also tolerant of a mock `hass` without
+ * localisation at all.
  */
 export function translate(hass: Hass | undefined, key: string, fallback: string): string {
-  const localize = hass?.localize;
+  const loaded = hass ? loadedTranslations.get(locale(hass)) : undefined;
+  const localize = loaded ?? hass?.localize;
   if (typeof localize !== "function") return fallback;
-  const value = localize(key);
+  const value = localize(`${TRANSLATION_PREFIX}${key}`);
   return typeof value === "string" && value.trim() ? value : fallback;
 }
 

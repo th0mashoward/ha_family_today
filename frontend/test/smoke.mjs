@@ -50,40 +50,39 @@ const mkHass = (a, extra = {}) => ({
   // returns "" for keys the frontend does not know about.
   localize: (key) => {
     const dict = {
-      "ui.card.family_today.sensor_not_found": "Family Today sensor not found",
-      "ui.card.family_today.school_day": "School day",
-      "ui.card.family_today.no_school": "No school",
-      "ui.card.family_today.bins_out_tonight": "Bins out tonight",
-      "ui.card.family_today.next": "Next",
-      "ui.card.family_today.tomorrow": "tomorrow",
-      "ui.card.family_today.bin_day_today": "Bin day today",
-      "ui.card.family_today.details_for": "Details for",
-      "ui.card.family_today.nothing_scheduled_today": "Nothing scheduled today",
-      "ui.card.family_today.nothing_on": "Nothing on",
-      "ui.card.family_today.next_bins": "Next bins",
-      "ui.card.family_today.show_details": "Show details",
-      "ui.card.family_today.today_events_from": "Today's events from",
-      "ui.card.family_today.calendar_unavailable": "Calendar unavailable",
-      "ui.card.family_today.showing_saved_events": "Showing saved events",
-      "ui.card.family_today.today": "Today",
-      "ui.card.family_today.close": "Close",
-      "ui.card.family_today.from_earlier_refresh": "are from an earlier refresh",
-      "ui.card.family_today.term_ends": "Term ends",
-      "ui.card.family_today.next_break": "Next break",
-      "ui.card.family_today.back_to_school": "Back to school",
-      "ui.card.family_today.next_term": "Next term",
-      "ui.card.family_today.no_term_dates_configured": "No term dates configured.",
+      "component.family_today.common.family_today_sensor_not_found": "Family Today sensor not found",
+      "component.family_today.common.family_today_school_day": "School day",
+      "component.family_today.common.family_today_no_school": "No school",
+      "component.family_today.common.family_today_bins_out_tonight": "Bins out tonight",
+      "component.family_today.common.family_today_next": "Next",
+      "component.family_today.common.family_today_tomorrow": "tomorrow",
+      "component.family_today.common.family_today_bin_day_today": "Bin day today",
+      "component.family_today.common.family_today_details_for": "Details for",
+      "component.family_today.common.family_today_nothing_scheduled_today": "Nothing scheduled today",
+      "component.family_today.common.family_today_nothing_on": "Nothing on",
+      "component.family_today.common.family_today_next_bins": "Next bins",
+      "component.family_today.common.family_today_show_details": "Show details",
+      "component.family_today.common.family_today_today_events_from": "Today's events from",
+      "component.family_today.common.family_today_calendar_unavailable": "Calendar unavailable",
+      "component.family_today.common.family_today_showing_saved_events": "Showing saved events",
+      "component.family_today.common.family_today_close": "Close",
+      "component.family_today.common.family_today_from_earlier_refresh": "are from an earlier refresh",
+      "component.family_today.common.family_today_term_ends": "Term ends",
+      "component.family_today.common.family_today_next_break": "Next break",
+      "component.family_today.common.family_today_back_to_school": "Back to school",
+      "component.family_today.common.family_today_next_term": "Next term",
+      "component.family_today.common.family_today_no_term_dates_configured": "No term dates configured.",
       // School card translations
-      "ui.card.family_today_school.sensor_not_found": "Family Today sensor not found",
-      "ui.card.family_today_school.school": "School",
-      "ui.card.family_today_school.school_day": "School day",
-      "ui.card.family_today_school.no_school": "No school",
-      "ui.card.family_today_school.no_school_data_yet": "No school data yet.",
-      "ui.card.family_today_school.no_school_breaks_in_calendar_yet": "No school breaks in the calendar yet.",
-      "ui.card.family_today_school.no_term_dates_configured": "No term dates configured.",
-      "ui.card.family_today_school.back_to_school": "Back to school",
-      "ui.card.family_today_school.next_term": "Next term",
-      "ui.card.family_today_school.upcoming_breaks": "Upcoming breaks",
+      "component.family_today.common.family_today_school_sensor_not_found": "Family Today sensor not found",
+      "component.family_today.common.family_today_school_school": "School",
+      "component.family_today.common.family_today_school_school_day": "School day",
+      "component.family_today.common.family_today_school_no_school": "No school",
+      "component.family_today.common.family_today_school_no_school_data_yet": "No school data yet.",
+      "component.family_today.common.family_today_school_no_school_breaks_in_calendar_yet": "No school breaks in the calendar yet.",
+      "component.family_today.common.family_today_school_no_term_dates_configured": "No term dates configured.",
+      "component.family_today.common.family_today_school_back_to_school": "Back to school",
+      "component.family_today.common.family_today_school_next_term": "Next term",
+      "component.family_today.common.family_today_school_upcoming_breaks": "Upcoming breaks",
     };
     return dict[key] ?? "";
   },
@@ -459,12 +458,33 @@ assert.match(text(el), /not found/);
 // --- localisation goes through hass.localize, with English fallbacks
 const localized = mkHass(attrs());
 localized.localize = (key) =>
-  key === "ui.card.family_today.school_day" ? "Schultag" : "";
+  key === "component.family_today.common.family_today_school_day" ? "Schultag" : "";
 el = await render({ entity: "sensor.family_today_today" }, localized);
 t = text(el);
 assert.match(t, /Schultag/, "translated strings win");
 assert.match(t, /Bins out tonight/, "unknown keys fall back to English");
 assert.equal(typeof localized.translate, "undefined", "hass has no translate method");
+
+// --- integration strings are loaded once and used by both cards
+const loadHass = mkHass(attrs());
+let loadCalls = 0;
+loadHass.localize = () => "";
+loadHass.loadBackendTranslation = async (category, integration) => {
+  loadCalls++;
+  assert.equal(category, "common");
+  assert.equal(integration, "family_today");
+  return (key) =>
+    key === "component.family_today.common.family_today_school_day"
+      ? "Schultag"
+      : "";
+};
+el = await render({ entity: "sensor.family_today_today" }, loadHass);
+await new Promise((resolve) => setTimeout(resolve, 0));
+await el.updateComplete;
+t = text(el);
+assert.match(t, /Schultag/, "strings loaded from the integration are used");
+assert.match(t, /Bins out tonight/, "keys missing from the translation fall back to English");
+assert.equal(loadCalls, 1, "the integration strings are loaded once");
 
 // --- bad config rejected; editor + registry present
 const bad = window.document.createElement("family-today-card");

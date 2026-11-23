@@ -10,6 +10,7 @@ from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import Event, HomeAssistant
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.event import (
     async_track_state_change_event,
     async_track_time_change,
@@ -23,6 +24,8 @@ from .coordinator import FamilyTodayCoordinator
 from .services import async_setup_services
 
 PLATFORMS = ["sensor", "binary_sensor"]
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 NOTIFICATION_ACTION_EVENT = "mobile_app_notification_action"
 

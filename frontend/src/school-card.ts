@@ -14,6 +14,7 @@ import {
   colorFor,
   formatDateShort,
   inDays,
+  loadCardTranslations,
   translate,
 } from "./helpers";
 import "./school-editor";
@@ -80,12 +81,14 @@ export class FamilyTodaySchoolCard extends LitElement {
 
   protected render(): TemplateResult {
     if (!this.hass || !this._config) return html``;
+    const pending = loadCardTranslations(this.hass);
+    if (pending) void pending.then(() => this.requestUpdate());
     const entity = this._config.entity ?? DEFAULT_ENTITY;
     const found = this.hass.states[entity];
     if (!found) {
       return html`<ha-card>
         <div class="missing">
-          ${translate(this.hass, "ui.card.family_today_school.sensor_not_found", "Family Today sensor not found")} (<code>${entity}</code>).
+          ${translate(this.hass, "family_today_school_sensor_not_found", "Family Today sensor not found")} (<code>${entity}</code>).
         </div>
       </ha-card>`;
     }
@@ -95,7 +98,7 @@ export class FamilyTodaySchoolCard extends LitElement {
     const single = entries.length === 1;
     const schoolCalendar = this._schoolCalendar(a);
     const title =
-      this._config.title ?? translate(this.hass, "ui.card.family_today_school.school", "School");
+      this._config.title ?? translate(this.hass, "family_today_school_school", "School");
 
     return html`<ha-card>
       <div class="header">
@@ -106,7 +109,7 @@ export class FamilyTodaySchoolCard extends LitElement {
               ${this._config.show_calendar && schoolCalendar
                 ? html`<button class="calendar-btn" @click=${() => this._openCalendar(schoolCalendar)}>
                     <ha-icon icon="mdi:calendar-outline"></ha-icon>
-                    View full calendar
+                    ${translate(this.hass, "family_today_school_view_calendar", "View full calendar")}
                   </button>`
                 : nothing}
             </div>`
@@ -114,7 +117,7 @@ export class FamilyTodaySchoolCard extends LitElement {
       </div>
       ${entries.length
         ? entries.map((entry) => this._section(entry, !single))
-        : html`<div class="empty">${translate(this.hass, "ui.card.family_today_school.no_school_data_yet", "No school data yet.")}</div>`}
+        : html`<div class="empty">${translate(this.hass, "family_today_school_no_school_data_yet", "No school data yet.")}</div>`}
     </ha-card>`;
   }
 
@@ -174,8 +177,8 @@ export class FamilyTodaySchoolCard extends LitElement {
 
   private _chip(s: SchoolStatus): TemplateResult {
     const label = s.is_school_day
-      ? translate(this.hass, "ui.card.family_today_school.school_day", "School day")
-      : s.reason || translate(this.hass, "ui.card.family_today_school.no_school", "No school");
+      ? translate(this.hass, "family_today_school_school_day", "School day")
+      : s.reason || translate(this.hass, "family_today_school_no_school", "No school");
     return html`<span class=${classMap({ chip: true, school: s.is_school_day })}>
       <ha-icon
         icon=${s.is_school_day ? "mdi:school" : "mdi:school-outline"}
@@ -188,7 +191,7 @@ export class FamilyTodaySchoolCard extends LitElement {
     if (!s.term) return nothing;
     const pct = s.term_progress ?? null;
     const ends = s.term_end
-      ? `${translate(this.hass, "ui.card.family_today.term_ends", "Term ends")} ${formatDateShort(
+      ? `${translate(this.hass, "family_today_term_ends", "Term ends")} ${formatDateShort(
           this.hass,
           s.term_end,
         )}`
@@ -238,7 +241,7 @@ export class FamilyTodaySchoolCard extends LitElement {
           s.next_term_start === s.back_to_school;
         const label = startsNextTerm
           ? `${s.next_term} starts`
-          : translate(this.hass, "ui.card.family_today_school.back_to_school", "Back to school");
+          : translate(this.hass, "family_today_school_back_to_school", "Back to school");
         rows.push(
           this._fact(
             "mdi:school",
@@ -252,7 +255,7 @@ export class FamilyTodaySchoolCard extends LitElement {
         rows.push(
           this._fact(
             "mdi:calendar-start",
-            translate(this.hass, "ui.card.family_today_school.next_term", "Next term"),
+            translate(this.hass, "family_today_school_next_term", "Next term"),
             `${s.next_term} · ${formatDateShort(
               this.hass,
               s.next_term_start,
@@ -282,12 +285,12 @@ export class FamilyTodaySchoolCard extends LitElement {
     if (!breaks.length) {
       return html`<div class="empty-breaks">
         ${s.term || s.next_term
-          ? translate(this.hass, "ui.card.family_today_school.no_school_breaks_in_calendar_yet", "No school breaks in the calendar yet.")
-          : translate(this.hass, "ui.card.family_today_school.no_term_dates_configured", "No term dates configured.")}
+          ? translate(this.hass, "family_today_school_no_school_breaks_in_calendar_yet", "No school breaks in the calendar yet.")
+          : translate(this.hass, "family_today_school_no_term_dates_configured", "No term dates configured.")}
       </div>`;
     }
     return html`<div class="breaks">
-      <div class="breaks-title">${translate(this.hass, "ui.card.family_today_school.upcoming_breaks", "Upcoming breaks")}</div>
+      <div class="breaks-title">${translate(this.hass, "family_today_school_upcoming_breaks", "Upcoming breaks")}</div>
       ${breaks.map((brk) => this._breakRow(brk))}
     </div>`;
   }
