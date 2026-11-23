@@ -21,4 +21,4 @@ window.customCards.push({
   preview: false,
 });
 
-console.info("%c FAMILY-TODAY-CARD %c 0.2.0", "color:#fff;background:#4285f4;font-weight:700", "");
+console.info("%c FAMILY-TODAY-CARD %c 0.3.0", "color:#fff;background:#4285f4;font-weight:700", "");

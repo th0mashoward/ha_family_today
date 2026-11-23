@@ -375,7 +375,7 @@
     .empty-breaks { padding: 4px 0; color: var(--secondary-text-color); font-size: 0.9em; }
     .empty, .missing { padding: 12px 0; color: var(--secondary-text-color); text-align: center; }
     .missing code { overflow-wrap: anywhere; }
-  `;customElements.define("family-today-school-card",j);window.customCards=window.customCards||[];window.customCards.push({type:"family-today-card",name:"Family Today",description:"Today's family agenda, school day and bin collections in one card.",preview:!1});window.customCards.push({type:"family-today-school-card",name:"Family Today School",description:"Term progress and upcoming breaks, with one section per child.",preview:!1});console.info("%c FAMILY-TODAY-CARD %c 0.2.0","color:#fff;background:#4285f4;font-weight:700","");})();
+  `;customElements.define("family-today-school-card",j);window.customCards=window.customCards||[];window.customCards.push({type:"family-today-card",name:"Family Today",description:"Today's family agenda, school day and bin collections in one card.",preview:!1});window.customCards.push({type:"family-today-school-card",name:"Family Today School",description:"Term progress and upcoming breaks, with one section per child.",preview:!1});console.info("%c FAMILY-TODAY-CARD %c 0.3.0","color:#fff;background:#4285f4;font-weight:700","");})();
 /*! Bundled license information:
 
 @lit/reactive-element/css-tag.js:

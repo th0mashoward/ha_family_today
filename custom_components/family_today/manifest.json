@@ -15,5 +15,5 @@
   "integration_type": "service",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/th0mashoward/ha_family_today/issues",
-  "version": "0.2.0"
+  "version": "0.3.0"
 }
