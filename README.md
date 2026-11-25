@@ -208,7 +208,7 @@ weekends and holidays.
   the release tag while Home Assistant shows the manifest version, so keep them in
   sync. The card cache-buster is read from the manifest automatically.
 
-Status: early (0.3.0). The pure logic and card have unit/smoke tests, and it is
+Status: early (0.3.1). The pure logic and card have unit/smoke tests, and it is
 running on a live Home Assistant instance.
 
 [Waste Collection Schedule]: https://github.com/mampfes/hacs_waste_collection_schedule

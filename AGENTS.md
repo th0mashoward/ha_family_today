@@ -19,7 +19,7 @@ from `config/custom_components/` (HACS or manual copy). The integration fetches
 calendar events, works out school days, term progress and bin collections, and
 exposes the result as entities and actions. The cards render those entities.
 
-At the time of writing the version is `0.3.0`; always read
+At the time of writing the version is `0.3.1`; always read
 `custom_components/family_today/manifest.json` for the current value.
 
 ## Fast facts
