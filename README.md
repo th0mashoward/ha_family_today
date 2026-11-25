@@ -112,7 +112,11 @@ instance.
 - **`family_today.announce`** sends a message through `notify.send_message`.
   Name a `notify_entity` in the call, or set a default under **Configure >
   Notifications**. It supports `title`, `tag`, companion-app `actions` and extra
-  `data` (image, url, group...).
+  `data` (image, url, group...). When `tag`, `actions` or extra `data` are
+  supplied, Family Today uses a compatible legacy notify service because
+  Home Assistant's generic `notify.send_message` entity action does not accept
+  custom notification data. Mobile App notify entities are resolved to their
+  per-device legacy service automatically.
 - **`family_today.acknowledge_bins`** marks today's bins as out. The bins sensor
   then stays off for the rest of the day.
 
