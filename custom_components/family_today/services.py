@@ -193,6 +193,21 @@ async def _async_announce(call: ServiceCall) -> ServiceResponse:
         raise ServiceValidationError(str(err)) from err
 
     for target in targets:
+        if "data" in payload:
+            notify_service = target.partition(".")[2]
+            if not hass.services.has_service("notify", notify_service):
+                raise ServiceValidationError(
+                    f"Notify entity '{target}' does not expose a matching notify "
+                    "service, which is required for custom notification data"
+                )
+            await hass.services.async_call(
+                "notify",
+                notify_service,
+                payload,
+                blocking=True,
+            )
+            continue
+
         await hass.services.async_call(
             "notify",
             "send_message",
