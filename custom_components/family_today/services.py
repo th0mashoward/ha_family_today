@@ -19,7 +19,7 @@ from homeassistant.core import (
 )
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv, entity_registry as er
-from homeassistant.util import dt as dt_util
+from homeassistant.util import dt as dt_util, slugify
 
 from .actions import (
     NotificationError,
@@ -101,6 +101,32 @@ def _selected(hass: HomeAssistant, call: ServiceCall) -> list[FamilyTodayCoordin
             + ", ".join(sorted(str(entity_id) for entity_id in entity_ids))
         )
     return selected
+
+
+def _legacy_notify_service(hass: HomeAssistant, target: str) -> str | None:
+    """Find the legacy notify action for an entity that needs custom data."""
+    service = target.partition(".")[2]
+    if hass.services.has_service("notify", service):
+        return service
+
+    entity = er.async_get(hass).async_get(target)
+    if (
+        entity is None
+        or entity.platform != "mobile_app"
+        or entity.config_entry_id is None
+    ):
+        return None
+
+    config_entry = hass.config_entries.async_get_entry(entity.config_entry_id)
+    if config_entry is None or config_entry.domain != "mobile_app":
+        return None
+
+    device_name = config_entry.data.get("device_name")
+    if not isinstance(device_name, str) or not device_name:
+        return None
+
+    service = slugify(f"mobile_app_{device_name}")
+    return service if hass.services.has_service("notify", service) else None
 
 
 def _localise(value: datetime) -> datetime:
@@ -194,10 +220,10 @@ async def _async_announce(call: ServiceCall) -> ServiceResponse:
 
     for target in targets:
         if "data" in payload:
-            notify_service = target.partition(".")[2]
-            if not hass.services.has_service("notify", notify_service):
+            notify_service = _legacy_notify_service(hass, target)
+            if notify_service is None:
                 raise ServiceValidationError(
-                    f"Notify entity '{target}' does not expose a matching notify "
+                    f"Notify entity '{target}' has no compatible legacy notify "
                     "service, which is required for custom notification data"
                 )
             await hass.services.async_call(
